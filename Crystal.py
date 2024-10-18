@@ -107,9 +107,9 @@ class Crystal:
         else:
             raise ValueError("Poling array length wrong.")
 
-    def generate_poling(self,laser,mode='periodic'):
+    def generate_poling(self,laser,mode='periodic',resolution=5):
         if mode == 'periodic':
-            self.generate_periodic_poling(resolution=5)
+            self.generate_periodic_poling(resolution=resolution)
         elif mode == 'custom':
             self.generate_custom_poling(laser)
     

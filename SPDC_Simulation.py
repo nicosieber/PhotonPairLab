@@ -111,7 +111,7 @@ class SPDC_Simulation:
     # Plotting methods remain unchanged
     def plot_pump(self):
         cmap = cm.viridis
-        f_size = 16
+        f_size = 12
         delta_labelsize = 4
         number_ticklabels = 5
         dev = 5
@@ -141,7 +141,7 @@ class SPDC_Simulation:
 
     def plot_phase(self):
         cmap = cm.viridis
-        f_size = 16
+        f_size = 12
         delta_labelsize = 4
         number_ticklabels = 5
         dev = 5
@@ -171,7 +171,7 @@ class SPDC_Simulation:
 
     def plot_jsi(self):
         cmap = cm.viridis
-        f_size = 16
+        f_size = 12
         delta_labelsize = 4
         number_ticklabels = 5
         dev = 5
@@ -201,7 +201,7 @@ class SPDC_Simulation:
 
     def plot_jsa(self):
         cmap = cm.viridis
-        f_size = 16
+        f_size = 12
         delta_labelsize = 4
         number_ticklabels = 5
         dev = 5
@@ -234,14 +234,14 @@ class SPDC_Simulation:
         II = self.II
         h = self.h
         g = self.g
-        f_size = 14
+        f_size = 12
 
         fig2 = plt.figure()
         ax21 = fig2.add_subplot(211)
         ax21.bar(np.arange(20), s_vals[0:20], align="center", alpha=0.75)
         ax21.grid(True)
         ax21.set_ylabel("Schmidt Coefficients", fontsize=f_size)
-        tlt = "Schmidt Decomposition of the JSA"
+        tlt = f"Schmidt Decomposition of the JSA - Resulting purity: {round(self.Purity,2)}"
         ax21.set_title(tlt, fontsize=f_size)
 
         # Marginal distributions
@@ -271,11 +271,13 @@ class SPDC_Simulation:
         plt.show()
 
     def plot_poling(self):
+        # Needs to be rewritten to account for normal periodic poling
         z = self.z
         sarray = self.crystal.sarray
         amuparray = self.crystal.amuparray
         atarray = self.crystal.atarray
         plt.plot(z * 1000, sarray)
+        '''
         plt.plot(
             1000 * z[:-1],
             2 * amuparray / (np.amax(amuparray) + np.amin(amuparray)) - 1,
@@ -286,7 +288,8 @@ class SPDC_Simulation:
             2 * atarray / (np.amax(atarray) + np.amin(atarray)) - 1,
             linewidth=2,
         )
-        plt.legend(["poling", "target amplitude", "actual amplitude"], loc="lower right")
+        '''
+        plt.legend(["poling"], loc="lower right")
         plt.xlabel("position within the crystal (mm)")
         plt.show()
 
@@ -296,4 +299,4 @@ class SPDC_Simulation:
         self.plot_jsi()
         self.plot_jsa()
         self.plot_schmidt_coefficients()
-        self.plot_poling()
+        #self.plot_poling()
