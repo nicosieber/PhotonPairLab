@@ -1,5 +1,4 @@
 import numpy as np
-from numpy import matlib
 from sympy import Symbol, diff
 import sympy
 import math
@@ -112,18 +111,19 @@ class Crystal:
             self.generate_periodic_poling(resolution=resolution)
         elif mode == 'custom':
             self.generate_custom_poling(laser)
-    
-    def generate_periodic_poling(self,resolution=5):
+
+    def generate_periodic_poling(self, resolution=5):
         Lc = self.Lc
         Lo = self.Lo
-        num_domains = np.floor(Lo/Lc)
-        polarizations = np.empty((int(2*num_domains),))
-        polarizations[::2] = 1
-        polarizations[1::2] = -1
-        self.sarray = np.repeat(matlib.repmat(polarizations,1,1),resolution)
-        self.Lo = num_domains*Lc
-        num_slices = self.sarray.size
-        self.z = np.linspace(-self.L/2,self.L/2,num=num_slices)
+        num_domains = int(np.floor(Lo / Lc))
+        # Create the polarizations array using np.tile
+        polarizations = np.tile([1, -1], num_domains)
+        # Create the sarray using np.repeat
+        self.sarray = np.repeat(polarizations, resolution)
+        # Adjust Lo to be an integer multiple of Lc
+        self.Lo = num_domains * Lc
+        # Calculate z values directly based on the length of sarray
+        self.z = np.linspace(-self.L / 2, self.L / 2, len(self.sarray))
 
     def generate_custom_poling(self, laser):
         # Compute refractive indices at central wavelengths
