@@ -25,6 +25,6 @@ with $c$ being the vacuum speed of light and $\mathbf{a}^\dagger$ as bosonic cre
 ### Pump pulse envelope
 Assuming a Gaussian pump pulse, the function describing the PPE can be written as
 
-$$\epsilon(\omega_s,\omega_i)=e^{-(\dfrac{\omega_i+\omega_s-\omega_p}{2\omega_{\text{fwhm}}})^2}.$$
+$$\epsilon(\omega_s,\omega_i)=e^{-\left(\dfrac{\omega_i+\omega_s-\omega_p}{2\omega_{\text{fwhm}}}\right)^2}.$$
 
 ### Phase matching function
