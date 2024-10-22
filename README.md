@@ -1,6 +1,8 @@
 # objSPDC
-## Object oriented implementation of the simulation of joint spectral amplitudes and other related properties for SPDC.
+## Description
+Object oriented implementation of the simulation of joint spectral amplitudes and other related properties for SPDC.
 
+## Theoretical background
 Spontaneous Parametric Down-Conversion (SPDC) is a second order non-linear process in which a pump photon spontaneously is split into two photons (call signal and idler photons) by interacting with its surrounding medium. 
 
 The effect can be grouped into three categories:
