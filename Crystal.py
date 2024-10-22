@@ -6,6 +6,8 @@ import math
 class Crystal:
     """
     Represents the properties of the nonlinear crystal used in the simulation.
+
+    For now, the only available material is periodically poled KTP.
     """
     def __init__(self, Lc, Lo, T, w, mstart):
         self.Lc = Lc        # Coherence length (m)
