@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm
-from lmfit import Model
+from scipy.optimize import curve_fit
 
 class SPDC_Simulation:
     """
@@ -230,6 +230,7 @@ class SPDC_Simulation:
         plt.show()
 
     def plot_schmidt_coefficients(self):
+        # Schmidt coefficients
         s_vals = self.s_vals
         II = self.II
         h = self.h
@@ -250,17 +251,24 @@ class SPDC_Simulation:
         y1 = abs(np.trapz(II, h)) / np.amax(abs(np.trapz(II, h)))
         ax22.plot(x1, y1, "bo", markersize=4)
 
-        gmodel = Model(self.gaussian)
-        params = gmodel.make_params(cen=np.mean(x1), amp=1, wid=1, off=0)
-        result1 = gmodel.fit(y1, params, x=x1)
-        ax22.plot(x1, result1.best_fit, linestyle="--", color="orange")
+        # Define Gaussian function
+        def gaussian(x, amp, cen, wid, off):
+            return amp * np.exp(-(x - cen) ** 2 / wid) + off
 
+        # Use curve_fit to fit the Gaussian function to the data
+        p0 = [1, np.mean(x1), 1, 0]  # Initial guesses for amp, cen, wid, off
+        popt1, _ = curve_fit(gaussian, x1, y1, p0=p0)
+        ax22.plot(x1, gaussian(x1, *popt1), linestyle="--", color="orange")
+
+        # Fit and plot the idler data
         y2 = abs(np.trapz(II.T, h)) / np.amax(abs(np.trapz(II.T, h)))
         ax22.plot(x1, y2, "r^", markersize=4)
 
-        result2 = gmodel.fit(y2, params, x=x1)
-        ax22.plot(x1, result2.best_fit, linestyle="--", color="green")
+        # Fit the idler data using curve_fit
+        popt2, _ = curve_fit(gaussian, x1, y2, p0=p0)
+        ax22.plot(x1, gaussian(x1, *popt2), linestyle="--", color="green")
 
+        # Formatting the plot
         ax22.grid(True)
         ax22.set_xlim(left=np.amin(h * 1e9), right=np.amax(h * 1e9))
         ax22.set_xlabel("wavelength (nm)")
