@@ -14,4 +14,6 @@ $$\omega_p=\omega_s+\omega_i$$
 
 $$\vec{k}_p=\vec{k}_s+\vec{k}_i+\dfrac{2\pi}{\Lambda}\vec{z}$$
 
-Here $\omega_{p,s,i}$ and $\vec{k}_{p,s,i}$ represent for the pump, signal and idler frequencies / wavenumbers. 
+Here $\omega_{p,s,i}$ and $\vec{k}_{p,s,i}$ represent for the pump, signal and idler frequencies / wavenumbers and $\Lambda$ being the poling period, the total distance of two domains of equal length but opposing second order non-linearity $\chi^{(2)}$. The process itself is described by the Hamiltonian
+
+$$\hat{H}=c\int d\omega_s d\omega_i\epsilon(\omega_s,\omega_i)\varphi(\omega_s,\omega_i)\hat{a}^\dag(\omega_s)\hat{a}^\dag(\omega_i)+h.c.$$
