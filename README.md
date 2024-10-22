@@ -9,6 +9,9 @@ The effect can be grouped into three categories:
 - Type II: Signal and idler photons have **orthogonal polarizations** to each other. For example, one photon is ordinary polarized ("o"), and the other is extraordinary polarized ("e").
 
 During SPDC, energy and momentum is conserved. This can be described by the following equations:
+
 $$\omega_p=\omega_s+\omega_i$$
+
 $$\vec{k}_p=\vec{k}_s+\vec{k}_i+\dfrac{2\pi}{\Lambda}\vec{z}$$
+
 Here $\omega_{p,s,i}$ and $\vec{k}_{p,s,i}$ represent for the pump, signal and idler frequencies / wavenumbers. 
