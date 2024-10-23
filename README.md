@@ -37,7 +37,7 @@ $$\Delta\lambda=\dfrac{c}{\nu^2}\Delta\nu.$$
 
 In case for Gaussian pulses, the relation $\Delta\nu\Delta\tau=2\ln(2)/\pi$ can be used to obtain the formula for converting pulsdurations $\Delta\tau$ to bandwidths $\Delta\lambda$ for given central wavelengths $\lambda_0$:
 
-$$\Delta\lambda=\dfrac{2\ln(2)}{\pi}\dfrac{\lambda_0^2}{c\Delta\tau}$$
+$$\Delta\lambda=\dfrac{2\ln(2)}{\pi}\dfrac{\lambda^2}{c\Delta\tau}$$
 
 ### Phase matching function
 
