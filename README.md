@@ -27,4 +27,20 @@ Assuming a Gaussian pump pulse, the function describing the PPE can be written a
 
 $$\epsilon(\omega_s,\omega_i)=e^{-\left(\dfrac{\omega_i+\omega_s-\omega_p}{2\omega_{\text{fwhm}}}\right)^2}.$$
 
+Conversion from pulse duration to bandwidth can be calculated as follows: With $c=\lambda\nu$ ($\lambda$ as wavelength, $\nu$ as frequency), the expression
+
+$$\dfrac{d\lambda}{d\nu}=-\dfrac{c}{\nu_0^2}$$
+
+can be obtained. By further referring to absolute values and changing the differential to a difference, the expression becomes
+
+$$\Delta\lambda=\dfrac{c}{\nu_0^2}\Delta\nu.$$
+
+In case for Gaussian pulses, the relation $\Delta\nu\Delta\tau=2\ln(2)/\pi$ can be used to obtain the formula for converting pulsdurations $\Delta\tau$ to bandwidths $\Delta\lambda$ for given central wavelengths $\lambda_0$:
+
+$$\Delta\lambda=\dfrac{2\ln(2)}{\pi}\dfrac{\lambda_0^2}{c\Delta\tau}$$
+
 ### Phase matching function
+
+
+
+
