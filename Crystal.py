@@ -9,7 +9,7 @@ class Crystal:
 
     For now, the only available material is periodically poled KTP.
     """
-    def __init__(self, Lc, Lo, T, w, mstart):
+    def __init__(self, Lc: float, Lo: float, T: float, w: float, mstart: int):
         self.Lc = Lc        # Coherence length (m)
         self.Lo = Lo        # Physical length of the crystal (m)
         self.T = T          # Temperature (°C)
@@ -90,31 +90,156 @@ class Crystal:
         return float(y)
 
     def gtarget(self, z, L, lc):
+        """
+        Computes a Gaussian target function based on the given parameters.
+
+        Parameters:
+            z (float): The position variable.
+            L (float): The length parameter, typically representing the crystal length.
+            lc (float): Unused parameter in the current implementation.
+
+        Returns:
+            float: The value of the Gaussian function evaluated at the given position `z`.
+        """
         return np.exp(-((z - L / 2) ** 2) / (L ** 2 / 8))
 
     def Atarget(self, w, m, L, Lc, DeltaK):
+        """
+        Computes the target amplitude for a given set of parameters.
+
+        Parameters:
+            w (float): The width parameter, typically related to the beam or crystal dimensions.
+            m (int): The number of segments or divisions for the integration range.
+            L (float): The crystal length or a related parameter.
+            Lc (float): The coherence length of the crystal.
+            DeltaK (float): The phase mismatch parameter.
+
+        Returns:
+            complex: The computed target amplitude as a complex number.
+        """
         z = np.linspace(0, m * w, num=m)
-        y = (
-            self.gtarget(z, L, Lc / 2)
-            * np.cos(np.pi / (Lc / 2) * z)
-            * np.exp(1j * DeltaK * z)
-        )
+        g = self.gtarget(z, L, Lc / 2)
+        cos_term = np.cos(np.pi / (Lc / 2) * z)
+        exp_term = np.exp(1j * DeltaK * z)
+        y = g * cos_term * exp_term
         return -1j * np.trapz(y, z)
 
     def Am2(self, w, altered_z, m, Lc, sn):
-        if len(sn) == m:
-            y = np.sum(sn * np.exp(1j * np.pi / (Lc / 2) * altered_z))
-            return Lc / (2 * np.pi) * (np.exp(-1j * np.pi / (Lc / 2) * w) - 1) * y
-        else:
+        """
+        Computes the amplitude modulation function Am2 for a given set of parameters.
+
+        Parameters:
+            w (float): The angular frequency variable.
+            altered_z (float): The altered spatial coordinate.
+            m (int): The number of poling periods.
+            Lc (float): The coherence length of the crystal.
+            sn (array-like): The poling array, which must have a length equal to `m`.
+
+        Returns:
+            complex: The computed amplitude modulation value.
+
+        Raises:
+            ValueError: If the length of the poling array `sn` is not equal to `m`.
+
+        Notes:
+            - The function uses a summation over the poling array `sn` multiplied by an
+              exponential term to compute the amplitude modulation.
+            - The coherence length `Lc` is used to scale the result.
+        """
+        if len(sn) != m:
             raise ValueError("Poling array length wrong.")
+        exp_term = np.exp(1j * np.pi / (Lc / 2) * altered_z)
+        y = np.sum(sn * exp_term)
+        return Lc / (2 * np.pi) * (np.exp(-1j * np.pi / (Lc / 2) * w) - 1) * y
 
     def generate_poling(self,laser,mode='periodic',resolution=5):
+        """
+        Generates the poling configuration for the crystal based on the specified mode.
+
+        Parameters:
+            laser: object
+                The laser object containing relevant parameters for custom poling.
+            mode: str, optional
+                The mode of poling to generate. Options are:
+                - 'periodic': Generates a periodic poling configuration.
+                - 'custom': Generates a custom poling configuration based on the laser parameters.
+                Default is 'periodic'.
+            resolution: int, optional
+                The resolution parameter for periodic poling. Higher values result in finer resolution.
+                Default is 5.
+
+        Raises:
+            ValueError: If an unsupported mode is specified.
+        """
         if mode == 'periodic':
             self.generate_periodic_poling(resolution=resolution)
         elif mode == 'custom':
             self.generate_custom_poling(laser)
+        else:
+            raise ValueError(f"Unsupported mode: {mode}")
+            
+    def generate_periodic_poling(self, resolution=5):
+        """
+        Generates a periodic poling structure for the crystal.
+
+        This method creates a periodic poling structure by alternating polarizations
+        (e.g., [1, -1, 1, -1, ...]) based on the coherence length (Lc) and the 
+        overall length (Lo) of the crystal. The resulting structure is stored in 
+        the `sarray` attribute, and the `z` attribute is updated to represent the 
+        spatial positions corresponding to the poling structure.
+
+        Args:
+            resolution (int, optional): The number of points per domain in the 
+                periodic poling structure. Defaults to 5.
+
+        Attributes Updated:
+            sarray (numpy.ndarray): Array representing the periodic poling structure 
+                with alternating polarizations.
+            Lo (float): Adjusted overall length of the crystal to be an integer 
+                multiple of the coherence length (Lc).
+            z (numpy.ndarray): Array of spatial positions corresponding to the 
+                periodic poling structure.
+
+        Notes:
+            - The method ensures that the overall length (Lo) is adjusted to be an 
+              integer multiple of the coherence length (Lc).
+            - The `z` array is calculated to span the entire length of the crystal 
+              (`L`), with the number of points matching the length of `sarray`.
+        """
+        # Validate that Lc and Lo are positive numbers
+        if not (isinstance(self.Lc, (int, float)) and self.Lc > 0):
+            raise ValueError("Coherence length (Lc) must be a positive number.")
+        if not (isinstance(self.Lo, (int, float)) and self.Lo > 0):
+            raise ValueError("Overall length (Lo) must be a positive number.")
 
     def generate_periodic_poling(self, resolution=5):
+        """
+        Generates a periodic poling structure for the crystal.
+
+        This method creates a periodic poling structure by alternating polarizations
+        (e.g., [1, -1, 1, -1, ...]) based on the coherence length (Lc) and the 
+        overall length (Lo) of the crystal. The resulting structure is stored in 
+        the `sarray` attribute, and the `z` attribute is updated to represent the 
+        spatial positions corresponding to the poling structure.
+
+        Args:
+            resolution (int, optional): The number of points per domain in the 
+                periodic poling structure. Defaults to 5.
+
+        Attributes Updated:
+            sarray (numpy.ndarray): Array representing the periodic poling structure 
+                with alternating polarizations.
+            Lo (float): Adjusted overall length of the crystal to be an integer 
+                multiple of the coherence length (Lc).
+            z (numpy.ndarray): Array of spatial positions corresponding to the 
+                periodic poling structure.
+
+        Notes:
+            - The method ensures that the overall length (Lo) is adjusted to be an 
+              integer multiple of the coherence length (Lc).
+            - The `z` array is calculated to span the entire length of the crystal 
+              (`L`), with the number of points matching the length of `sarray`.
+        """
         Lc = self.Lc
         Lo = self.Lo
         num_domains = int(np.floor(Lo / Lc))
@@ -128,6 +253,33 @@ class Crystal:
         self.z = np.linspace(-self.L / 2, self.L / 2, len(self.sarray))
 
     def generate_custom_poling(self, laser):
+        """
+        Generates a custom poling pattern for the nonlinear crystal based on the input laser parameters.
+
+        This method computes the poling pattern by iteratively determining the orientation of the 
+        nonlinear domains (up or down) that minimizes the error between the target amplitude and 
+        the computed amplitude. The resulting poling pattern is stored in the `sarray` attribute.
+
+        Parameters:
+            laser (object): An object representing the laser, which must have the following attributes:
+                - lambda_w (float): Central wavelength of the fundamental wave (in meters).
+                - lambda_2w (float): Central wavelength of the second harmonic wave (in meters).
+
+        Attributes:
+            sarray (numpy.ndarray): Array representing the poling pattern (1 for "up", -1 for "down").
+            atarray (numpy.ndarray): Array of target amplitudes for each iteration.
+            amuparray (numpy.ndarray): Array of computed amplitudes for "up" orientation.
+            amdownarray (numpy.ndarray): Array of computed amplitudes for "down" orientation.
+            altered_z (numpy.ndarray): Array of altered z-coordinates used in the computation.
+            z (numpy.ndarray): Array of z-coordinates shifted by half the crystal length.
+
+        Notes:
+            - The method uses the refractive indices and group indices of the crystal at the 
+              fundamental and second harmonic wavelengths to compute the phase mismatch (DeltaK_0).
+            - The apodization algorithm is applied iteratively to determine the optimal poling pattern.
+            - The method assumes that the crystal parameters (e.g., `w`, `mstart`, `L`, `Lc`) 
+              are already defined as attributes of the class.
+        """
         # Compute refractive indices at central wavelengths
         lambda_w = laser.lambda_w
         lambda_2w = laser.lambda_2w

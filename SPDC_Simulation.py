@@ -5,7 +5,60 @@ from scipy.optimize import curve_fit
 
 class SPDC_Simulation:
     """
-    Simulates the Spontaneous Parametric Down-Conversion (SPDC) process using the given crystal and laser.
+    SPDC_Simulation Class
+    This class simulates the process of Spontaneous Parametric Down-Conversion (SPDC) 
+    in a nonlinear crystal pumped by a laser. It calculates various properties such as 
+    the Joint Spectral Amplitude (JSA), Joint Spectral Intensity (JSI), Schmidt coefficients, 
+    and other related quantities. It also provides visualization methods for the results.
+    Attributes:
+        crystal (object): The nonlinear crystal used in the SPDC process.
+        laser (object): The laser used to pump the nonlinear crystal.
+        DeltaK_0 (float): The phase mismatch at the central wavelengths.
+        Pf0 (float): The center angular frequency of the pump.
+        Df0 (float): The center angular frequency of the down-converted photons.
+        KyP (float): Group velocity of the pump in the y-direction.
+        KzD (float): Group velocity of the idler in the z-direction.
+        KyD (float): Group velocity of the signal in the y-direction.
+        bw (float): Bandwidth of the pump laser.
+        xi_eff (ndarray): Effective nonlinear coefficient array for the crystal.
+        z (ndarray): Position array within the crystal.
+        g (ndarray): Signal wavelength array.
+        h (ndarray): Idler wavelength array.
+        Pump (ndarray): Pump pulse envelope matrix.
+        Phase (ndarray): Phase matching function matrix.
+        II (ndarray): Joint Spectral Intensity (JSI) matrix.
+        JSA (ndarray): Joint Spectral Amplitude (JSA) matrix.
+        Purity (float): Purity of the quantum state.
+        K (float): Schmidt number, representing the degree of entanglement.
+        s_vals (ndarray): Schmidt coefficients.
+    Methods:
+        __init__(crystal, laser):
+            Initializes the SPDC_Simulation object with the given crystal and laser.
+        gaussian(x, amp, cen, wid, off):
+            Defines a Gaussian function for fitting purposes.
+        initialize_parameters():
+            Initializes the parameters required for the SPDC simulation, including 
+            refractive indices, group velocities, and phase mismatch.
+        run_simulation(steps=200, dev=5):
+            Runs the SPDC simulation to calculate the JSA, JSI, Schmidt coefficients, 
+            and other related quantities.
+        plot_pump():
+            Plots the normalized pump pulse envelope (PPE).
+        plot_phase():
+            Plots the normalized phase matching function (PMF).
+        plot_jsi():
+            Plots the normalized Joint Spectral Intensity (JSI).
+        plot_jsa():
+            Plots the normalized Joint Spectral Amplitude (JSA).
+        plot_schmidt_coefficients():
+            Plots the Schmidt coefficients and the marginal distributions of the JSI.
+        plot_poling():
+            Plots the poling profile of the nonlinear crystal.
+        plot_poling2():
+            Plots an alternative representation of the poling profile.
+        plot_results():
+            Plots all the main results of the SPDC simulation, including the pump, 
+            phase matching, JSI, JSA, Schmidt coefficients, and optionally the poling profile.
     """
     def __init__(self, crystal, laser):
         self.crystal = crystal
@@ -14,8 +67,49 @@ class SPDC_Simulation:
         self.initialize_parameters()
     # Define the Gaussian function used for fitting
     def gaussian(self, x, amp, cen, wid, off):
+        """
+        Computes a Gaussian function.
+
+        Parameters:
+            x (float or ndarray): The input value(s) where the Gaussian function is evaluated.
+            amp (float): The amplitude of the Gaussian peak.
+            cen (float): The center position of the Gaussian peak.
+            wid (float): The width (variance) of the Gaussian function.
+            off (float): The offset added to the Gaussian function.
+
+        Returns:
+            float or ndarray: The computed value(s) of the Gaussian function at the given input.
+        """
         return amp * np.exp(-(x - cen) ** 2 / wid) + off
     def initialize_parameters(self):
+        """
+        Initializes the parameters required for the SPDC simulation.
+        This method sets up various physical and simulation parameters by extracting
+        data from the crystal and laser objects, computing necessary refractive indices,
+        group indices, angular frequencies, group velocities, and other simulation-specific
+        values.
+        Steps:
+        1. Ensures the poling pattern of the crystal is generated.
+        2. Extracts crystal and laser properties such as dimensions, wavelengths, and speed of light.
+        3. Computes refractive indices and group indices for the crystal at specific wavelengths.
+        4. Calculates the phase mismatch (DeltaK_0) for the simulation.
+        5. Determines the center angular frequencies for pump and signal photons.
+        6. Computes group velocities for pump, signal, and idler photons.
+        7. Calculates the bandwidth of the laser.
+        8. Prepares the effective poling pattern and spatial coordinates for simulation.
+        Attributes Set:
+        - DeltaK_0: Phase mismatch at the central wavelengths.
+        - Pf0: Center angular frequency of the pump photon.
+        - Df0: Center angular frequency of the signal photon.
+        - KyP: Group velocity for the pump photon.
+        - KzD: Group velocity for the idler photon.
+        - KyD: Group velocity for the signal photon.
+        - bw: Bandwidth of the laser.
+        - xi_eff: Effective poling pattern for the crystal.
+        - z: Spatial coordinates for the simulation.
+        Raises:
+        - AttributeError: If required attributes in the crystal or laser objects are missing.
+        """
         # Ensure that the poling pattern is generated
         if self.crystal.sarray is None:
             self.crystal.generate_poling(self.laser)
@@ -59,8 +153,95 @@ class SPDC_Simulation:
         # xi_eff and z for simulation
         self.xi_eff = np.flip(sarray.astype("float64"))
         self.z = z
+    
+    def compute_phase(self,z, xi_eff, DeltaK):
+        y = xi_eff[:, None, None] * np.exp(-1j * DeltaK[None, :, :] * z[:, None, None])
+        return np.trapz(y, z, axis=0)
+
+    def run_simulation_optimized(self, steps=200, dev=5):
+        """
+        Optimized SPDC simulation to compute the Joint Spectral Amplitude (JSA),
+        pump profile, phase, intensity, and related parameters.
+        """
+        lambda_w = self.laser.lambda_w
+        c = self.laser.c
+        z = self.z
+        xi_eff = self.xi_eff
+        DeltaK_0 = self.DeltaK_0
+        KyP = self.KyP
+        KzD = self.KzD
+        KyD = self.KyD
+        Df0 = self.Df0
+        bw = self.bw
+        Pf0 = self.Pf0
+    
+        # Generate signal and idler wavelength arrays
+        h = np.linspace(lambda_w - dev * 1e-9, lambda_w + dev * 1e-9, steps)
+        g = np.linspace(lambda_w - dev * 1e-9, lambda_w + dev * 1e-9, steps)
+    
+        # Precompute constants
+        fs = 2 * np.pi * c / g[:, None]  # Signal frequencies (column vector)
+        fi = 2 * np.pi * c / h[None, :]  # Idler frequencies (row vector)
+        DeltaK_1 = (KyP - KyD) * (fs - Df0) + (KyP - KzD) * (fi - Df0)
+        DeltaK = DeltaK_0 + DeltaK_1
+        S = np.exp(-((fi + fs - Pf0) ** 2) / (2 * bw ** 2))  # Gaussian pump spectrum
+    
+        # Compute Pump, Phase, II, and JSA using vectorized operations
+        Pump = S ** 2
+        #y = xi_eff[:, None, None] * np.exp(-1j * DeltaK[None, :, :] * z[:, None, None])
+        #phase = np.trapz(y, z, axis=0)
+        phase = self.compute_phase(z, xi_eff, DeltaK)
+        # Compute phase matching function
+        Phase = np.abs(phase) ** 2
+        Amp = S * phase
+        II = np.abs(Amp) ** 2
+        JSA = np.abs(Amp)
+    
+        # Store results
+        self.g = g
+        self.h = h
+        self.Pump = Pump
+        self.Phase = Phase
+        self.II = II
+        self.JSA = JSA
+    
+        # Schmidt decomposition
+        u, s_vals, vh = np.linalg.svd(JSA / np.amax(JSA), full_matrices=True)
+        s_vals = s_vals / np.sqrt(np.sum(s_vals ** 2))  # Normalize
+        self.Purity = np.sum(s_vals ** 4)
+        self.K = 1 / self.Purity
+        self.s_vals = s_vals
 
     def run_simulation(self, steps=200, dev=5):
+        """
+        Runs the SPDC (Spontaneous Parametric Down-Conversion) simulation to compute 
+        the Joint Spectral Amplitude (JSA), pump profile, phase, intensity, and other 
+        related parameters. Additionally, performs Schmidt decomposition to calculate 
+        the purity and Schmidt number.
+
+        Parameters:
+            steps (int, optional): Number of steps for discretizing the wavelength range. 
+                                   Default is 200.
+            dev (float, optional): Deviation in nanometers from the central wavelength 
+                                   for the wavelength range. Default is 5.
+
+        Attributes Set:
+            g (numpy.ndarray): Array of signal wavelengths.
+            h (numpy.ndarray): Array of idler wavelengths.
+            Pump (numpy.ndarray): 2D array representing the pump profile.
+            Phase (numpy.ndarray): 2D array representing the phase profile.
+            II (numpy.ndarray): 2D array representing the intensity profile.
+            JSA (numpy.ndarray): 2D array representing the Joint Spectral Amplitude.
+            Purity (float): Purity of the quantum state obtained from Schmidt decomposition.
+            K (float): Schmidt number, representing the degree of entanglement.
+            s_vals (numpy.ndarray): Singular values from the Schmidt decomposition.
+
+        Notes:
+            - The simulation assumes a Gaussian pump spectrum.
+            - The Schmidt decomposition is performed using Singular Value Decomposition (SVD).
+            - The purity is calculated as the sum of the fourth powers of the normalized 
+              singular values.
+        """
         lambda_w = self.laser.lambda_w
         c = self.laser.c
         h = np.linspace(lambda_w - dev * 1e-9, lambda_w + dev * 1e-9, steps)
@@ -279,6 +460,19 @@ class SPDC_Simulation:
         plt.show()
 
     def plot_poling(self):
+        z = self.z
+        sarray = self.crystal.sarray
+
+        plt.plot(z * 1000, sarray, label="poling")
+        plt.xlabel("Position within the crystal (mm)")
+        plt.ylabel("Poling value")
+        plt.title("Poling Profile")
+        plt.legend(loc="lower right")
+        plt.grid(True)
+        plt.tight_layout()
+        plt.show()
+
+    def plot_poling2(self):
         # Needs to be rewritten to account for normal periodic poling
         z = self.z
         sarray = self.crystal.sarray
