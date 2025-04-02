@@ -10,6 +10,33 @@ class Crystal:
     For now, the only available material is periodically poled KTP.
     """
     def __init__(self, Lc: float, Lo: float, T: float, w: float, mstart: int):
+        """
+        Initializes the Crystal object with its physical and operational parameters.
+
+        Parameters:
+            Lc (float): Coherence length of the crystal in meters.
+            Lo (float): Physical length of the crystal in meters.
+            T (float): Temperature of the crystal in degrees Celsius.
+            w (float): Domain width parameter in meters.
+            mstart (int): Starting index for the apodization algorithm.
+
+        Attributes:
+            Lc (float): Coherence length (m).
+            Lo (float): Physical length of the crystal (m).
+            T (float): Temperature (°C).
+            w (float): Domain width parameter (m).
+            mstart (int): Starting index for the apodization algorithm.
+            nm (float): Conversion factor for nanometers to meters (1e-9).
+            um (float): Conversion factor for micrometers to meters (1e-6).
+            mm (float): Conversion factor for millimeters to meters (1e-3).
+            L (float): Temperature-expanded physical length of the crystal (m).
+            sarray (None or array-like): Poling pattern attribute (to be computed).
+            atarray (None or array-like): Poling pattern attribute (to be computed).
+            amuparray (None or array-like): Poling pattern attribute (to be computed).
+            amdownarray (None or array-like): Poling pattern attribute (to be computed).
+            altered_z (None or array-like): Poling pattern attribute (to be computed).
+            z (None or array-like): Poling pattern attribute (to be computed).
+        """
         self.Lc = Lc        # Coherence length (m)
         self.Lo = Lo        # Physical length of the crystal (m)
         self.T = T          # Temperature (°C)
@@ -34,6 +61,20 @@ class Crystal:
         self.z = None
 
     def refractive_index_y(self, x):
+        """
+        Calculate the refractive index in the y-direction for a given wavelength.
+
+        This function computes the refractive index in the y-direction based on the 
+        wavelength `x` (in micrometers) and the temperature `T` (assumed to be an 
+        attribute of the class). The calculation includes temperature-dependent 
+        corrections.
+
+        Parameters:
+            x (float): Wavelength in micrometers.
+
+        Returns:
+            float: Refractive index in the y-direction.
+        """
         T = self.T
         ny2 = 2.09930 + (0.922683 / (1 - (0.0467695 / x ** 2))) - (0.0138408 * x ** 2)
         Sny = np.sqrt(ny2)
@@ -44,6 +85,19 @@ class Crystal:
         return y
 
     def refractive_index_z(self, x):
+        """
+        Calculate the refractive index along the z-axis for a given wavelength.
+
+        This function computes the refractive index of a material along the z-axis
+        based on the input wavelength and temperature. The calculation includes
+        temperature-dependent corrections.
+
+        Args:
+            x (float): The wavelength in micrometers.
+
+        Returns:
+            float: The refractive index along the z-axis.
+        """
         T = self.T
         nz2 = (
             2.12725
@@ -59,6 +113,20 @@ class Crystal:
         return y
 
     def group_index_y(self, x1):
+        """
+        Calculate the group index in the y-direction for a given wavelength.
+
+        This method computes the group index of a crystal in the y-direction 
+        based on the wavelength and temperature. The calculation involves 
+        refractive index equations and their temperature dependence.
+
+        Args:
+            x1 (float): The wavelength (in micrometers) at which the group 
+                        index is to be calculated.
+
+        Returns:
+            float: The group index in the y-direction at the specified wavelength.
+        """
         x = Symbol("x")
         T = self.T
         ny2 = 2.09930 + (0.922683 / (1 - (0.0467695 / x ** 2))) - (0.0138408 * x ** 2)
@@ -72,6 +140,22 @@ class Crystal:
         return float(y)
 
     def group_index_z(self, x1):
+        """
+        Calculate the group index in the z-direction for a given wavelength.
+
+        This method computes the group index in the z-direction based on the 
+        Sellmeier equation and temperature-dependent refractive index corrections.
+
+        Parameters:
+        -----------
+        x1 : float
+            The wavelength (in micrometers) at which the group index is calculated.
+
+        Returns:
+        --------
+        float
+            The group index in the z-direction for the specified wavelength.
+        """
         x = Symbol("x")
         T = self.T
         nz2 = (
