@@ -3,46 +3,44 @@ from sympy import Symbol, diff
 import sympy
 import math
 
+from Materials import BaseMaterial
+
 class Crystal:
-    """
-    Represents the properties of the nonlinear crystal used in the simulation.
-
-    For now, the only available material is periodically poled KTP.
-    """
-    def __init__(self, Lc: float, Lo: float, T: float, w: float, mstart: int, materials_db):
+    def __init__(self, Lc: float, Lo: float, T: float, w: float, mstart: int, material: BaseMaterial):
         """
-        Initializes the Crystal object with its physical and operational parameters.
-
-        Parameters:
+        Initializes a Crystal object with its physical and material properties.
+        Args:
             Lc (float): Coherence length of the crystal in meters.
             Lo (float): Physical length of the crystal in meters.
             T (float): Temperature of the crystal in degrees Celsius.
             w (float): Domain width parameter in meters.
             mstart (int): Starting index for the apodization algorithm.
-
+            material (BaseMaterial): Material database object containing the crystal's material properties.
         Attributes:
-            Lc (float): Coherence length (m).
-            Lo (float): Physical length of the crystal (m).
-            T (float): Temperature (°C).
-            w (float): Domain width parameter (m).
+            Lc (float): Coherence length of the crystal.
+            Lo (float): Physical length of the crystal.
+            T (float): Temperature of the crystal.
+            w (float): Domain width parameter.
             mstart (int): Starting index for the apodization algorithm.
+            material (BaseMaterial): Material database object.
             nm (float): Conversion factor for nanometers to meters (1e-9).
             um (float): Conversion factor for micrometers to meters (1e-6).
             mm (float): Conversion factor for millimeters to meters (1e-3).
-            L (float): Temperature-expanded physical length of the crystal (m).
-            sarray (None or array-like): Poling pattern attribute (to be computed).
-            atarray (None or array-like): Poling pattern attribute (to be computed).
-            amuparray (None or array-like): Poling pattern attribute (to be computed).
-            amdownarray (None or array-like): Poling pattern attribute (to be computed).
-            altered_z (None or array-like): Poling pattern attribute (to be computed).
-            z (None or array-like): Poling pattern attribute (to be computed).
+            L (float): Temperature-expanded length of the crystal, calculated using a quadratic expansion formula.
+            sarray (None or array-like): Poling pattern attribute to be computed.
+            atarray (None or array-like): Poling pattern attribute to be computed.
+            amuparray (None or array-like): Poling pattern attribute to be computed.
+            amdownarray (None or array-like): Poling pattern attribute to be computed.
+            altered_z (None or array-like): Poling pattern attribute to be computed.
+            z (None or array-like): Poling pattern attribute to be computed.
         """
+        
         self.Lc = Lc        # Coherence length (m)
         self.Lo = Lo        # Physical length of the crystal (m)
         self.T = T          # Temperature (°C)
         self.w = w          # Domain width parameter (m)
         self.mstart = mstart  # Starting index for the apodization algorithm
-        self.materials = materials_db  # Materials database object
+        self.material = material  # Materials database object
 
         # Constants
         self.nm = 1e-9
@@ -61,127 +59,17 @@ class Crystal:
         self.altered_z = None
         self.z = None
 
-    def refractive_index(self, wavelength, material, axis):
+    def refractive_index(self, wavelength, axis):
         """
-        Calculate the refractive index for a given wavelength, material, and axis.
-
-        Parameters:
-            wavelength (float): Wavelength in micrometers.
-            material (str): Name of the material (e.g., "KTP").
-            axis (str): Axis for which to calculate the refractive index ("x", "y", or "z").
-
-        Returns:
-            float: The refractive index for the specified material and axis.
-
-        Raises:
-            ValueError: If the material or coefficients are not found.
+        Delegate refractive index calculation to the material object.
         """
-        try:
-            coeffs = self.materials.get_sellmeier_coefficients(material, axis)
-        except ValueError as e:
-            raise ValueError(f"Error in refractive_index: {e}")
+        return self.material.refractive_index(wavelength, axis, temperature=self.T)
 
-        # Extract Sellmeier coefficients
-        A = coeffs["A"]
-        B = coeffs["B"]
-        C = coeffs["C"]
-        D = coeffs.get("D", 0)
-        E = coeffs.get("E", 0)
-        F = coeffs.get("F", 0)
-
-        # Compute refractive index using Sellmeier equation
-        # Use the appropriate formula based on the number of coefficients
-        if E == 0 and F == 0:  # Only four coefficients
-            n_squared = A + B / (1 - C / wavelength**2) - D * wavelength**2
-        else:  # Six coefficients
-            n_squared = (
-                A
-                + B / (1 - C / wavelength**2)
-                + D / (1 - E / wavelength**2)
-                - F * wavelength**2
-            )
-        
-        n = np.sqrt(n_squared)
-
-        # Apply temperature corrections if available
-        try:
-            temp_coeffs = self.materials.get_temperature_corrections(material, axis)
-            if temp_coeffs:
-                n1 = temp_coeffs["n1"]
-                n2 = temp_coeffs["n2"]
-                deln = (
-                    (n1[0] + n1[1] / wavelength + n1[2] / wavelength**2 + n1[3] / wavelength**3) * (self.T - 25)
-                    + (n2[0] + n2[1] / wavelength + n2[2] / wavelength**2 + n2[3] / wavelength**3) * (self.T - 25)**2
-                )
-                n += deln
-        except ValueError:
-            # Skip temperature correction if not available
-            pass
-
-        return n
-
-    def group_index(self, wavelength, material, axis):
+    def group_index(self, wavelength, axis):
         """
-        Calculate the group index for a given wavelength, material, and axis.
-
-        Parameters:
-            wavelength (float): Wavelength in micrometers.
-            material (str): Name of the material (e.g., "KTP").
-            axis (str): Axis for which to calculate the group index ("x", "y", or "z").
-
-        Returns:
-            float: The group index for the specified material and axis.
-
-        Raises:
-            ValueError: If the material or coefficients are not found.
+        Delegate group index calculation to the material object.
         """
-        x = Symbol("x")
-        try:
-            coeffs = self.materials.get_sellmeier_coefficients(material, axis)
-        except ValueError as e:
-            raise ValueError(f"Error in group_index: {e}")
-
-        # Extract Sellmeier coefficients
-        A = coeffs["A"]
-        B = coeffs["B"]
-        C = coeffs["C"]
-        D = coeffs.get("D", 0)
-        E = coeffs.get("E", 0)
-        F = coeffs.get("F", 0)
-
-        # Compute refractive index symbolically
-        # Use the appropriate formula based on the number of coefficients
-        if E == 0 and F == 0:  # Only four coefficients
-            n_squared = A + B / (1 - C / x**2) - D * x**2
-        else:  # Six coefficients
-            n_squared = (
-                A
-                + B / (1 - C / x**2)
-                + D / (1 - E / x**2)
-                - F * x**2
-            )
-        n = sympy.sqrt(n_squared)
-        
-        # Compute group index symbolically
-        group_index_expr = n - x * diff(n, x)
-        group_index_value = group_index_expr.subs({x: wavelength})
-
-        # Apply temperature corrections if available
-        try:
-            temp_coeffs = self.materials.get_temperature_corrections(material, axis)
-            if temp_coeffs:
-                n1 = temp_coeffs["n1"]
-                n2 = temp_coeffs["n2"]
-                deln = (
-                    (n1[0] + n1[1] / wavelength + n1[2] / wavelength**2 + n1[3] / wavelength**3) * (self.T - 25)
-                    + (n2[0] + n2[1] / wavelength + n2[2] / wavelength**2 + n2[3] / wavelength**3) * (self.T - 25)**2
-                )
-                group_index_value += deln
-        except ValueError:
-            # Skip temperature correction if not available
-            pass
-
-        return float(group_index_value)
+        return self.material.group_index(wavelength, axis, temperature=self.T)
 
     def gtarget(self, z, L, lc):
         """
@@ -234,11 +122,6 @@ class Crystal:
 
         Raises:
             ValueError: If the length of the poling array `sn` is not equal to `m`.
-
-        Notes:
-            - The function uses a summation over the poling array `sn` multiplied by an
-              exponential term to compute the amplitude modulation.
-            - The coherence length `Lc` is used to scale the result.
         """
         if len(sn) != m:
             raise ValueError("Poling array length wrong.")
@@ -275,31 +158,25 @@ class Crystal:
     def generate_periodic_poling(self, resolution=5):
         """
         Generates a periodic poling structure for the crystal.
-
         This method creates a periodic poling structure by alternating polarizations
-        (e.g., [1, -1, 1, -1, ...]) based on the coherence length (Lc) and the 
-        overall length (Lo) of the crystal. The resulting structure is stored in 
-        the `sarray` attribute, and the `z` attribute is updated to represent the 
-        spatial positions corresponding to the poling structure.
-
-        Args:
-            resolution (int, optional): The number of points per domain in the 
-                periodic poling structure. Defaults to 5.
-
-        Attributes Updated:
-            sarray (numpy.ndarray): Array representing the periodic poling structure 
-                with alternating polarizations.
-            Lo (float): Adjusted overall length of the crystal to be an integer 
-                multiple of the coherence length (Lc).
-            z (numpy.ndarray): Array of spatial positions corresponding to the 
-                periodic poling structure.
-
+        (e.g., [1, -1, 1, -1, ...]) over the length of the crystal. The resolution
+        determines the number of subdivisions per coherence length (Lc). The method
+        also adjusts the crystal length (Lo) to be an integer multiple of the coherence
+        length and calculates the corresponding z-axis values.
+        Parameters:
+            resolution (int, optional): The number of subdivisions per coherence length.
+                                        Default is 5.
+        Attributes Modified:
+            sarray (numpy.ndarray): The array representing the periodic poling structure
+                                    with alternating polarizations.
+            Lo (float): Adjusted length of the crystal to be an integer multiple of Lc.
+            z (numpy.ndarray): The z-axis values corresponding to the periodic poling structure.
         Notes:
-            - The method ensures that the overall length (Lo) is adjusted to be an 
-              integer multiple of the coherence length (Lc).
-            - The `z` array is calculated to span the entire length of the crystal 
-              (`L`), with the number of points matching the length of `sarray`.
+            - The coherence length (Lc) and original crystal length (Lo) must be defined
+              as attributes of the class before calling this method.
+            - The total length of the z-axis (z) will match the length of the sarray.
         """
+        
         Lc = self.Lc
         Lo = self.Lo
         num_domains = int(np.floor(Lo / Lc))
@@ -351,14 +228,14 @@ class Crystal:
         lambda_w = laser.lambda_w
         lambda_2w = laser.lambda_2w
 
-        nyD = self.refractive_index(lambda_w * 1e6, "KTP", "y")
-        nzD = self.refractive_index(lambda_w * 1e6, "KTP", "z")
-        nyP = self.refractive_index(lambda_2w * 1e6, "KTP", "y")
+        nyD = self.refractive_index(lambda_w * 1e6, "y")
+        nzD = self.refractive_index(lambda_w * 1e6, "z")
+        nyP = self.refractive_index(lambda_2w * 1e6, "y")
 
         # Compute group indices
-        NyP = self.group_index(lambda_2w * 1e6, "KTP", "y")
-        NzD = self.group_index(lambda_w * 1e6, "KTP", "z")
-        NyD = self.group_index(lambda_w * 1e6, "KTP", "y")
+        NyP = self.group_index(lambda_2w * 1e6, "y")
+        NzD = self.group_index(lambda_w * 1e6, "z")
+        NyD = self.group_index(lambda_w * 1e6, "y")
         self.Nmean = (NzD + NyD) / 2.0
 
         # Compute DeltaK_0

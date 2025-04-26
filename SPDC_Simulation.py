@@ -111,14 +111,14 @@ class SPDC_Simulation:
         c = self.laser.c
 
         # Refractive indices at central wavelengths
-        nyD = self.crystal.refractive_index(lambda_w * 1e6, "KTP", "y")
-        nzD = self.crystal.refractive_index(lambda_w * 1e6, "KTP", "z")
-        nyP = self.crystal.refractive_index(lambda_2w * 1e6, "KTP", "y")
+        nyD = self.crystal.refractive_index(lambda_w * 1e6, "y")
+        nzD = self.crystal.refractive_index(lambda_w * 1e6, "z")
+        nyP = self.crystal.refractive_index(lambda_2w * 1e6, "y")
 
         # Group indices
-        NyP = self.crystal.group_index(lambda_2w * 1e6, "KTP", "y")
-        NzD = self.crystal.group_index(lambda_w * 1e6, "KTP", "z")
-        NyD = self.crystal.group_index(lambda_w * 1e6, "KTP", "y")
+        NyP = self.crystal.group_index(lambda_2w * 1e6, "y")
+        NzD = self.crystal.group_index(lambda_w * 1e6, "z")
+        NyD = self.crystal.group_index(lambda_w * 1e6, "y")
 
         # Compute DeltaK_0
         self.DeltaK_0 = 2 * np.pi * (nyP / lambda_2w 
