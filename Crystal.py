@@ -9,7 +9,7 @@ class Crystal:
 
     For now, the only available material is periodically poled KTP.
     """
-    def __init__(self, Lc: float, Lo: float, T: float, w: float, mstart: int):
+    def __init__(self, Lc: float, Lo: float, T: float, w: float, mstart: int, materials_db):
         """
         Initializes the Crystal object with its physical and operational parameters.
 
@@ -42,6 +42,7 @@ class Crystal:
         self.T = T          # Temperature (°C)
         self.w = w          # Domain width parameter (m)
         self.mstart = mstart  # Starting index for the apodization algorithm
+        self.materials = materials_db  # Materials database object
 
         # Constants
         self.nm = 1e-9
@@ -60,6 +61,128 @@ class Crystal:
         self.altered_z = None
         self.z = None
 
+    def refractive_index(self, wavelength, material, axis):
+        """
+        Calculate the refractive index for a given wavelength, material, and axis.
+
+        Parameters:
+            wavelength (float): Wavelength in micrometers.
+            material (str): Name of the material (e.g., "KTP").
+            axis (str): Axis for which to calculate the refractive index ("x", "y", or "z").
+
+        Returns:
+            float: The refractive index for the specified material and axis.
+
+        Raises:
+            ValueError: If the material or coefficients are not found.
+        """
+        try:
+            coeffs = self.materials.get_sellmeier_coefficients(material, axis)
+        except ValueError as e:
+            raise ValueError(f"Error in refractive_index: {e}")
+
+        # Extract Sellmeier coefficients
+        A = coeffs["A"]
+        B = coeffs["B"]
+        C = coeffs["C"]
+        D = coeffs.get("D", 0)
+        E = coeffs.get("E", 0)
+        F = coeffs.get("F", 0)
+
+        # Compute refractive index using Sellmeier equation
+        # Use the appropriate formula based on the number of coefficients
+        if E == 0 and F == 0:  # Only four coefficients
+            n_squared = A + B / (1 - C / wavelength**2) - D * wavelength**2
+        else:  # Six coefficients
+            n_squared = (
+                A
+                + B / (1 - C / wavelength**2)
+                + D / (1 - E / wavelength**2)
+                - F * wavelength**2
+            )
+        
+        n = np.sqrt(n_squared)
+
+        # Apply temperature corrections if available
+        try:
+            temp_coeffs = self.materials.get_temperature_corrections(material, axis)
+            if temp_coeffs:
+                n1 = temp_coeffs["n1"]
+                n2 = temp_coeffs["n2"]
+                deln = (
+                    (n1[0] + n1[1] / wavelength + n1[2] / wavelength**2 + n1[3] / wavelength**3) * (self.T - 25)
+                    + (n2[0] + n2[1] / wavelength + n2[2] / wavelength**2 + n2[3] / wavelength**3) * (self.T - 25)**2
+                )
+                n += deln
+        except ValueError:
+            # Skip temperature correction if not available
+            pass
+
+        return n
+
+    def group_index(self, wavelength, material, axis):
+        """
+        Calculate the group index for a given wavelength, material, and axis.
+
+        Parameters:
+            wavelength (float): Wavelength in micrometers.
+            material (str): Name of the material (e.g., "KTP").
+            axis (str): Axis for which to calculate the group index ("x", "y", or "z").
+
+        Returns:
+            float: The group index for the specified material and axis.
+
+        Raises:
+            ValueError: If the material or coefficients are not found.
+        """
+        x = Symbol("x")
+        try:
+            coeffs = self.materials.get_sellmeier_coefficients(material, axis)
+        except ValueError as e:
+            raise ValueError(f"Error in group_index: {e}")
+
+        # Extract Sellmeier coefficients
+        A = coeffs["A"]
+        B = coeffs["B"]
+        C = coeffs["C"]
+        D = coeffs.get("D", 0)
+        E = coeffs.get("E", 0)
+        F = coeffs.get("F", 0)
+
+        # Compute refractive index symbolically
+        # Use the appropriate formula based on the number of coefficients
+        if E == 0 and F == 0:  # Only four coefficients
+            n_squared = A + B / (1 - C / x**2) - D * x**2
+        else:  # Six coefficients
+            n_squared = (
+                A
+                + B / (1 - C / x**2)
+                + D / (1 - E / x**2)
+                - F * x**2
+            )
+        n = sympy.sqrt(n_squared)
+        
+        # Compute group index symbolically
+        group_index_expr = n - x * diff(n, x)
+        group_index_value = group_index_expr.subs({x: wavelength})
+
+        # Apply temperature corrections if available
+        try:
+            temp_coeffs = self.materials.get_temperature_corrections(material, axis)
+            if temp_coeffs:
+                n1 = temp_coeffs["n1"]
+                n2 = temp_coeffs["n2"]
+                deln = (
+                    (n1[0] + n1[1] / wavelength + n1[2] / wavelength**2 + n1[3] / wavelength**3) * (self.T - 25)
+                    + (n2[0] + n2[1] / wavelength + n2[2] / wavelength**2 + n2[3] / wavelength**3) * (self.T - 25)**2
+                )
+                group_index_value += deln
+        except ValueError:
+            # Skip temperature correction if not available
+            pass
+
+        return float(group_index_value)
+
     def refractive_index_y(self, x):
         """
         Calculate the refractive index in the y-direction for a given wavelength.
@@ -69,6 +192,12 @@ class Crystal:
         attribute of the class). The calculation includes temperature-dependent 
         corrections.
 
+        Source: 
+            - Sellmeier coefficients for KTP:
+                F. Konig et al., APL, 84,1644, 2004
+            - Temperature dependant change of the refractive index, 
+                Emanueli et al., App. Opt., 42, 33, 2003
+
         Parameters:
             x (float): Wavelength in micrometers.
 
@@ -76,11 +205,13 @@ class Crystal:
             float: Refractive index in the y-direction.
         """
         T = self.T
-        ny2 = 2.09930 + (0.922683 / (1 - (0.0467695 / x ** 2))) - (0.0138408 * x ** 2)
+        ny2 = 2.09930 + (0.922683 / (1 - 0.0467695 / (x ** 2))) - 0.0138408 * x ** 2
         Sny = np.sqrt(ny2)
+
         n1_y = 6.28977e-6 + 6.3061e-6 / x - 6.0629e-6 / x ** 2 + 2.6486e-6 / x ** 3
         n2_y = -0.14445e-8 + 2.2244e-8 / x - 3.5770e-8 / x ** 2 + 1.3470e-8 / x ** 3
         deln_Y = n1_y * (T - 25) + n2_y * (T - 25) ** 2
+
         y = Sny + deln_Y
         return y
 
@@ -92,6 +223,12 @@ class Crystal:
         based on the input wavelength and temperature. The calculation includes
         temperature-dependent corrections.
 
+        Source: 
+            - Sellmeier coefficients for KTP:
+                K. Fradkin et al., APL, 74,914, 1999
+                https://aip.scitation.org/doi/pdf/10.1063/1.123408
+            - Temperature dependant change of the refractive index, 
+                Emanueli et al., App. Opt., 42, 33, 2003
         Args:
             x (float): The wavelength in micrometers.
 
@@ -368,14 +505,14 @@ class Crystal:
         lambda_w = laser.lambda_w
         lambda_2w = laser.lambda_2w
 
-        nyD = self.refractive_index_y(lambda_w * 1e6)
-        nzD = self.refractive_index_z(lambda_w * 1e6)
-        nyP = self.refractive_index_y(lambda_2w * 1e6)
+        nyD = self.refractive_index(lambda_w * 1e6, "KTP", "y")
+        nzD = self.refractive_index(lambda_w * 1e6, "KTP", "z")
+        nyP = self.refractive_index(lambda_2w * 1e6, "KTP", "y")
 
         # Compute group indices
-        NyP = self.group_index_y(lambda_2w * 1e6)
-        NzD = self.group_index_z(lambda_w * 1e6)
-        NyD = self.group_index_y(lambda_w * 1e6)
+        NyP = self.group_index(lambda_2w * 1e6, "KTP", "y")
+        NzD = self.group_index(lambda_w * 1e6, "KTP", "z")
+        NyD = self.group_index(lambda_w * 1e6, "KTP", "y")
         self.Nmean = (NzD + NyD) / 2.0
 
         # Compute DeltaK_0

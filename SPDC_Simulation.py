@@ -19,14 +19,14 @@ class SPDC_Simulation:
         KyP (float): Group velocity of the pump in the y-direction.
         KzD (float): Group velocity of the idler in the z-direction.
         KyD (float): Group velocity of the signal in the y-direction.
-        bw (float): Bandwidth of the pump laser.
+        bandwidth (float): Bandwidth of the pump laser.
         xi_eff (ndarray): Effective nonlinear coefficient array for the crystal.
         z (ndarray): Position array within the crystal.
-        g (ndarray): Signal wavelength array.
-        h (ndarray): Idler wavelength array.
+        signal_wavelengths (ndarray): Signal wavelength array.
+        idler_wavelengths (ndarray): Idler wavelength array.
         Pump (ndarray): Pump pulse envelope matrix.
         Phase (ndarray): Phase matching function matrix.
-        II (ndarray): Joint Spectral Intensity (JSI) matrix.
+        JSI (ndarray): Joint Spectral Intensity (JSI) matrix.
         JSA (ndarray): Joint Spectral Amplitude (JSA) matrix.
         Purity (float): Purity of the quantum state.
         K (float): Schmidt number, representing the degree of entanglement.
@@ -65,22 +65,7 @@ class SPDC_Simulation:
         self.laser = laser
         # Initialize other parameters
         self.initialize_parameters()
-    # Define the Gaussian function used for fitting
-    def gaussian(self, x, amp, cen, wid, off):
-        """
-        Computes a Gaussian function.
-
-        Parameters:
-            x (float or ndarray): The input value(s) where the Gaussian function is evaluated.
-            amp (float): The amplitude of the Gaussian peak.
-            cen (float): The center position of the Gaussian peak.
-            wid (float): The width (variance) of the Gaussian function.
-            off (float): The offset added to the Gaussian function.
-
-        Returns:
-            float or ndarray: The computed value(s) of the Gaussian function at the given input.
-        """
-        return amp * np.exp(-(x - cen) ** 2 / wid) + off
+    
     def initialize_parameters(self):
         """
         Initializes the parameters required for the SPDC simulation.
@@ -104,7 +89,7 @@ class SPDC_Simulation:
         - KyP: Group velocity for the pump photon.
         - KzD: Group velocity for the idler photon.
         - KyD: Group velocity for the signal photon.
-        - bw: Bandwidth of the laser.
+        - bandwidth: Bandwidth of the laser.
         - xi_eff: Effective poling pattern for the crystal.
         - z: Spatial coordinates for the simulation.
         Raises:
@@ -126,17 +111,19 @@ class SPDC_Simulation:
         c = self.laser.c
 
         # Refractive indices at central wavelengths
-        nyD = self.crystal.refractive_index_y(lambda_w * 1e6)
-        nzD = self.crystal.refractive_index_z(lambda_w * 1e6)
-        nyP = self.crystal.refractive_index_y(lambda_2w * 1e6)
+        nyD = self.crystal.refractive_index(lambda_w * 1e6, "KTP", "y")
+        nzD = self.crystal.refractive_index(lambda_w * 1e6, "KTP", "z")
+        nyP = self.crystal.refractive_index(lambda_2w * 1e6, "KTP", "y")
 
         # Group indices
-        NyP = self.crystal.group_index_y(lambda_2w * 1e6)
-        NzD = self.crystal.group_index_z(lambda_w * 1e6)
-        NyD = self.crystal.group_index_y(lambda_w * 1e6)
+        NyP = self.crystal.group_index(lambda_2w * 1e6, "KTP", "y")
+        NzD = self.crystal.group_index(lambda_w * 1e6, "KTP", "z")
+        NyD = self.crystal.group_index(lambda_w * 1e6, "KTP", "y")
 
         # Compute DeltaK_0
-        self.DeltaK_0 = 2 * np.pi * (nyP / lambda_2w - nzD / lambda_w - nyD / lambda_w)
+        self.DeltaK_0 = 2 * np.pi * (nyP / lambda_2w 
+                                   - nzD / lambda_w 
+                                   - nyD / lambda_w)
 
         # Center angular frequencies
         self.Pf0 = 2 * np.pi * c / lambda_2w
@@ -148,13 +135,53 @@ class SPDC_Simulation:
         self.KyD = NyD / c  # k' signal
 
         # Bandwidth
-        self.bw = (2 * np.pi * c) * self.laser.FWHM / (lambda_2w ** 2 * 2 * np.sqrt(np.log(2)))
+        self.bandwidth = (2 * np.pi * c) * self.laser.FWHM / (lambda_2w ** 2 * 2 * np.sqrt(np.log(2)))
 
         # xi_eff and z for simulation
         self.xi_eff = np.flip(sarray.astype("float64"))
         self.z = z
+
+    # Define the Gaussian function used for fitting
+    def gaussian(self, x, amp, cen, wid, off):
+        """
+        Computes a Gaussian function.
+
+        Parameters:
+            x (float or ndarray): The input value(s) where the Gaussian function is evaluated.
+            amp (float): The amplitude of the Gaussian peak.
+            cen (float): The center position of the Gaussian peak.
+            wid (float): The width (variance) of the Gaussian function.
+            off (float): The offset added to the Gaussian function.
+
+        Returns:
+            float or ndarray: The computed value(s) of the Gaussian function at the given input.
+        """
+        return amp * np.exp(-(x - cen) ** 2 / wid) + off
     
     def compute_phase(self,z, xi_eff, DeltaK):
+        """
+        Compute the phase integral for a given set of parameters.
+
+        This function calculates the phase integral by integrating over the 
+        product of the effective coupling coefficient and the exponential 
+        phase factor, using the trapezoidal rule.
+
+        Parameters:
+        -----------
+        z : numpy.ndarray
+            A 1D array representing the spatial positions (e.g., crystal length).
+        xi_eff : numpy.ndarray
+            A 1D array representing the effective coupling coefficients.
+        DeltaK : numpy.ndarray
+            A 2D array representing the phase mismatch values.
+
+        Returns:
+        --------
+        numpy.ndarray
+            A 2D array representing the computed phase integral over the spatial 
+            positions for the given effective coupling coefficients and phase 
+            mismatch values.
+        """
         y = xi_eff[:, None, None] * np.exp(-1j * DeltaK[None, :, :] * z[:, None, None])
         return np.trapz(y, z, axis=0)
 
@@ -172,37 +199,35 @@ class SPDC_Simulation:
         KzD = self.KzD
         KyD = self.KyD
         Df0 = self.Df0
-        bw = self.bw
+        bandwidth = self.bandwidth
         Pf0 = self.Pf0
     
         # Generate signal and idler wavelength arrays
-        h = np.linspace(lambda_w - dev * 1e-9, lambda_w + dev * 1e-9, steps)
-        g = np.linspace(lambda_w - dev * 1e-9, lambda_w + dev * 1e-9, steps)
+        idler_wavelengths = np.linspace(lambda_w - dev * 1e-9, lambda_w + dev * 1e-9, steps)
+        signal_wavelengths = np.linspace(lambda_w - dev * 1e-9, lambda_w + dev * 1e-9, steps)
     
         # Precompute constants
-        fs = 2 * np.pi * c / g[:, None]  # Signal frequencies (column vector)
-        fi = 2 * np.pi * c / h[None, :]  # Idler frequencies (row vector)
+        fs = 2 * np.pi * c / signal_wavelengths[:, None]  # Signal frequencies (column vector)
+        fi = 2 * np.pi * c / idler_wavelengths[None, :]  # Idler frequencies (row vector)
         DeltaK_1 = (KyP - KyD) * (fs - Df0) + (KyP - KzD) * (fi - Df0)
         DeltaK = DeltaK_0 + DeltaK_1
-        S = np.exp(-((fi + fs - Pf0) ** 2) / (2 * bw ** 2))  # Gaussian pump spectrum
+        S = np.exp(-((fi + fs - Pf0) ** 2) / (2 * bandwidth ** 2))  # Gaussian pump spectrum
     
-        # Compute Pump, Phase, II, and JSA using vectorized operations
+        # Compute Pump, Phase, JSI, and JSA using vectorized operations
         Pump = S ** 2
-        #y = xi_eff[:, None, None] * np.exp(-1j * DeltaK[None, :, :] * z[:, None, None])
-        #phase = np.trapz(y, z, axis=0)
         phase = self.compute_phase(z, xi_eff, DeltaK)
         # Compute phase matching function
         Phase = np.abs(phase) ** 2
         Amp = S * phase
-        II = np.abs(Amp) ** 2
+        JSI = np.abs(Amp) ** 2
         JSA = np.abs(Amp)
     
         # Store results
-        self.g = g
-        self.h = h
+        self.signal_wavelengths = signal_wavelengths
+        self.idler_wavelengths = idler_wavelengths
         self.Pump = Pump
         self.Phase = Phase
-        self.II = II
+        self.JSI = JSI
         self.JSA = JSA
     
         # Schmidt decomposition
@@ -230,7 +255,7 @@ class SPDC_Simulation:
             h (numpy.ndarray): Array of idler wavelengths.
             Pump (numpy.ndarray): 2D array representing the pump profile.
             Phase (numpy.ndarray): 2D array representing the phase profile.
-            II (numpy.ndarray): 2D array representing the intensity profile.
+            JSI (numpy.ndarray): 2D array representing the intensity profile.
             JSA (numpy.ndarray): 2D array representing the Joint Spectral Amplitude.
             Purity (float): Purity of the quantum state obtained from Schmidt decomposition.
             K (float): Schmidt number, representing the degree of entanglement.
@@ -244,8 +269,8 @@ class SPDC_Simulation:
         """
         lambda_w = self.laser.lambda_w
         c = self.laser.c
-        h = np.linspace(lambda_w - dev * 1e-9, lambda_w + dev * 1e-9, steps)
-        g = np.linspace(lambda_w - dev * 1e-9, lambda_w + dev * 1e-9, steps)
+        idler_wavelengths = np.linspace(lambda_w - dev * 1e-9, lambda_w + dev * 1e-9, steps)
+        signal_wavelengths = np.linspace(lambda_w - dev * 1e-9, lambda_w + dev * 1e-9, steps)
         z = self.z
         xi_eff = self.xi_eff
         DeltaK_0 = self.DeltaK_0
@@ -253,33 +278,33 @@ class SPDC_Simulation:
         KzD = self.KzD
         KyD = self.KyD
         Df0 = self.Df0
-        bw = self.bw
+        bandwidth = self.bandwidth
         Pf0 = self.Pf0
 
         Pump = np.zeros((steps, steps))
         Phase = np.zeros((steps, steps))
-        II = np.zeros((steps, steps))
+        JSI = np.zeros((steps, steps))
         JSA = np.zeros((steps, steps))
 
         for j in range(steps):
             for s in range(steps):
-                fs = 2 * np.pi * c / g[j]
-                fi = 2 * np.pi * c / h[s]
+                fs = 2 * np.pi * c / signal_wavelengths[j]
+                fi = 2 * np.pi * c / idler_wavelengths[s]
                 DeltaK_1 = (KyP - KyD) * (fs - Df0) + (KyP - KzD) * (fi - Df0)
                 DeltaK = DeltaK_0 + DeltaK_1
-                S = np.exp(-((fi + fs - Pf0) ** 2) / (2 * bw ** 2))
+                S = np.exp(-((fi + fs - Pf0) ** 2) / (2 * bandwidth ** 2))
                 Pump[s, j] = S ** 2
                 y = xi_eff * 1000 * np.exp(-1j * DeltaK * z)
                 phase = np.trapz(y, z)
                 Phase[s, j] = abs(phase ** 2)
                 Amp = S * phase
-                II[s, j] = np.real(np.conj(Amp) * Amp)
+                JSI[s, j] = np.real(np.conj(Amp) * Amp)
                 JSA[s, j] = abs(np.real(Amp))
-        self.g = g
-        self.h = h
+        self.signal_wavelengths = signal_wavelengths
+        self.idler_wavelengths = idler_wavelengths
         self.Pump = Pump
         self.Phase = Phase
-        self.II = II
+        self.JSI = JSI
         self.JSA = JSA
 
         # Schmidt decomposition
@@ -293,7 +318,6 @@ class SPDC_Simulation:
     def plot_pump(self):
         cmap = cm.viridis
         f_size = 12
-        delta_labelsize = 4
         number_ticklabels = 5
         dev = 5
         lambda_w_nm = self.laser.lambda_w * 1e9
@@ -323,7 +347,6 @@ class SPDC_Simulation:
     def plot_phase(self):
         cmap = cm.viridis
         f_size = 12
-        delta_labelsize = 4
         number_ticklabels = 5
         dev = 5
         lambda_w_nm = self.laser.lambda_w * 1e9
@@ -353,14 +376,13 @@ class SPDC_Simulation:
     def plot_jsi(self):
         cmap = cm.viridis
         f_size = 12
-        delta_labelsize = 4
         number_ticklabels = 5
         dev = 5
         lambda_w_nm = self.laser.lambda_w * 1e9
-        II = self.II
+        JSI = self.JSI
 
         fig, axs = plt.subplots(1, 1, sharex=True, constrained_layout=False)
-        im1 = axs.imshow(II / np.amax(II), cmap=cmap)
+        im1 = axs.imshow(JSI / np.amax(JSI), cmap=cmap)
         im1.set_interpolation("bilinear")
         im1.set_extent(
             [
@@ -383,7 +405,6 @@ class SPDC_Simulation:
     def plot_jsa(self):
         cmap = cm.viridis
         f_size = 12
-        delta_labelsize = 4
         number_ticklabels = 5
         dev = 5
         lambda_w_nm = self.laser.lambda_w * 1e9
@@ -413,9 +434,9 @@ class SPDC_Simulation:
     def plot_schmidt_coefficients(self):
         # Schmidt coefficients
         s_vals = self.s_vals
-        II = self.II
-        h = self.h
-        g = self.g
+        JSI = self.JSI
+        idler_wavelengths = self.idler_wavelengths
+        signal_wavelengths = self.signal_wavelengths
         f_size = 12
 
         fig2 = plt.figure()
@@ -428,8 +449,8 @@ class SPDC_Simulation:
 
         # Marginal distributions
         ax22 = fig2.add_subplot(212)
-        x1 = h * 1e9
-        y1 = abs(np.trapz(II, h)) / np.amax(abs(np.trapz(II, h)))
+        x1 = idler_wavelengths * 1e9
+        y1 = abs(np.trapz(JSI, idler_wavelengths)) / np.amax(abs(np.trapz(JSI, idler_wavelengths)))
         ax22.plot(x1, y1, "bo", markersize=4)
 
         # Define Gaussian function
@@ -442,7 +463,7 @@ class SPDC_Simulation:
         ax22.plot(x1, gaussian(x1, *popt1), linestyle="--", color="orange")
 
         # Fit and plot the idler data
-        y2 = abs(np.trapz(II.T, h)) / np.amax(abs(np.trapz(II.T, h)))
+        y2 = abs(np.trapz(JSI.T, idler_wavelengths)) / np.amax(abs(np.trapz(JSI.T, idler_wavelengths)))
         ax22.plot(x1, y2, "r^", markersize=4)
 
         # Fit the idler data using curve_fit
@@ -451,7 +472,7 @@ class SPDC_Simulation:
 
         # Formatting the plot
         ax22.grid(True)
-        ax22.set_xlim(left=np.amin(h * 1e9), right=np.amax(h * 1e9))
+        ax22.set_xlim(left=np.amin(idler_wavelengths * 1e9), right=np.amax(idler_wavelengths * 1e9))
         ax22.set_xlabel("wavelength (nm)")
         ax22.set_ylabel("normalized amplitude", fontsize=f_size)
         ax22.set_title("JSI Profiles", fontsize=f_size)
@@ -470,29 +491,6 @@ class SPDC_Simulation:
         plt.legend(loc="lower right")
         plt.grid(True)
         plt.tight_layout()
-        plt.show()
-
-    def plot_poling2(self):
-        # Needs to be rewritten to account for normal periodic poling
-        z = self.z
-        sarray = self.crystal.sarray
-        amuparray = self.crystal.amuparray
-        atarray = self.crystal.atarray
-        plt.plot(z * 1000, sarray)
-        '''
-        plt.plot(
-            1000 * z[:-1],
-            2 * amuparray / (np.amax(amuparray) + np.amin(amuparray)) - 1,
-            linewidth=2,
-        )
-        plt.plot(
-            1000 * z[:-1],
-            2 * atarray / (np.amax(atarray) + np.amin(atarray)) - 1,
-            linewidth=2,
-        )
-        '''
-        plt.legend(["poling"], loc="lower right")
-        plt.xlabel("position within the crystal (mm)")
         plt.show()
 
     def plot_results(self):
