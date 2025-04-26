@@ -271,40 +271,6 @@ class Crystal:
             self.generate_custom_poling(laser)
         else:
             raise ValueError(f"Unsupported mode: {mode}")
-            
-    def generate_periodic_poling(self, resolution=5):
-        """
-        Generates a periodic poling structure for the crystal.
-
-        This method creates a periodic poling structure by alternating polarizations
-        (e.g., [1, -1, 1, -1, ...]) based on the coherence length (Lc) and the 
-        overall length (Lo) of the crystal. The resulting structure is stored in 
-        the `sarray` attribute, and the `z` attribute is updated to represent the 
-        spatial positions corresponding to the poling structure.
-
-        Args:
-            resolution (int, optional): The number of points per domain in the 
-                periodic poling structure. Defaults to 5.
-
-        Attributes Updated:
-            sarray (numpy.ndarray): Array representing the periodic poling structure 
-                with alternating polarizations.
-            Lo (float): Adjusted overall length of the crystal to be an integer 
-                multiple of the coherence length (Lc).
-            z (numpy.ndarray): Array of spatial positions corresponding to the 
-                periodic poling structure.
-
-        Notes:
-            - The method ensures that the overall length (Lo) is adjusted to be an 
-              integer multiple of the coherence length (Lc).
-            - The `z` array is calculated to span the entire length of the crystal 
-              (`L`), with the number of points matching the length of `sarray`.
-        """
-        # Validate that Lc and Lo are positive numbers
-        if not (isinstance(self.Lc, (int, float)) and self.Lc > 0):
-            raise ValueError("Coherence length (Lc) must be a positive number.")
-        if not (isinstance(self.Lo, (int, float)) and self.Lo > 0):
-            raise ValueError("Overall length (Lo) must be a positive number.")
 
     def generate_periodic_poling(self, resolution=5):
         """
@@ -353,6 +319,13 @@ class Crystal:
         This method computes the poling pattern by iteratively determining the orientation of the 
         nonlinear domains (up or down) that minimizes the error between the target amplitude and 
         the computed amplitude. The resulting poling pattern is stored in the `sarray` attribute.
+
+        Reference for this method:
+            Sub-coherence length apodization algorithm according to
+            Quantum Sci. Technol. 2 (2017)035001 (https://doi.org/10.1088/2058-9565/aa78d4)
+            Pure down-conversion photons through sub-coherence-length domain engineering
+            Francesco Graffitti, Dmytro Kundys, Derryck T Reid, AgataMBrańczyk
+            and Alessandro Fedrizzi.
 
         Parameters:
             laser (object): An object representing the laser, which must have the following attributes:

@@ -1,6 +1,15 @@
 class Materials:
     """
     A class to encapsulate and manage material properties for nonlinear crystals.
+
+    References for Sellmeier coefficients and temperature corrections:
+    1. KTP: 
+       - Sellmeier coefficients: 
+            - y-axis: F. Konig et al., APL, 84,1644, 2004
+            - z-axis: K. Fradkin et al., APL, 74,914, 1999, https://aip.scitation.org/doi/pdf/10.1063/1.123408
+       - Temperature corrections: 
+            - Emanueli et al., App. Opt., 42, 33, 2003
+
     """
     def __init__(self):
         # Dictionary to store material properties
