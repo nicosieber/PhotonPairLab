@@ -6,7 +6,7 @@ import math
 from Materials import BaseMaterial
 
 class Crystal:
-    def __init__(self, Lc: float, Lo: float, T: float, w: float, material: BaseMaterial):
+    def __init__(self, Lc: float, Lo: float, T: float, w: float, material: BaseMaterial, spdc: str = "type-II"):
         """
         Initializes a Crystal object with its physical and material properties.
         Args:
@@ -38,6 +38,7 @@ class Crystal:
         self.T = T          # Temperature (°C)
         self.w = w          # Domain width parameter (m)
         self.material = material  # Materials database object
+        self.spdc = spdc    # Type of SPDC process (e.g., "type-II")
 
         # Constants
         self.nm = 1e-9
@@ -68,6 +69,32 @@ class Crystal:
         """
         return self.material.group_index(wavelength, axis, temperature=self.T)
 
+
+    def compute_phase_mismatch(self, laser):
+        """
+        Computes the phase mismatch (DeltaK_0) based on the SPDC type.
+        """
+        lambda_w = laser.lambda_w
+        lambda_2w = laser.lambda_2w
+
+        if self.spdc == "type-II":
+            # Pump has one polarization, signal and idler have orthogonal polarizations
+            n_pump = self.refractive_index(lambda_2w * 1e6, "y")
+            n_signal = self.refractive_index(lambda_w * 1e6, "y")
+            n_idler = self.refractive_index(lambda_w * 1e6, "z")
+
+            # Group velocities
+            N_pump = self.group_index(lambda_2w * 1e6, "y")
+            N_signal = self.group_index(lambda_w * 1e6, "z")
+            N_idler = self.group_index(lambda_w * 1e6, "y")
+        
+        else:
+            raise ValueError(f"Unsupported SPDC type: {self.spdc}")
+
+        # Compute DeltaK_0
+        DeltaK_0 = 2 * np.pi * (n_signal / lambda_w + n_idler / lambda_w - n_pump / lambda_2w)
+        return (n_pump, n_signal, n_idler), (N_pump, N_signal, N_idler), DeltaK_0
+    
     def gtarget(self, z, L, lc):
         """
         Computes a Gaussian target function based on the given parameters.
@@ -221,23 +248,9 @@ class Crystal:
             - The method assumes that the crystal parameters (e.g., `w`, `L`, `Lc`) 
               are already defined as attributes of the class.
         """
-        # Compute refractive indices at central wavelengths
-        lambda_w = laser.lambda_w
-        lambda_2w = laser.lambda_2w
-
-        nyD = self.refractive_index(lambda_w * 1e6, "y")
-        nzD = self.refractive_index(lambda_w * 1e6, "z")
-        nyP = self.refractive_index(lambda_2w * 1e6, "y")
-
-        # Compute group indices
-        NyP = self.group_index(lambda_2w * 1e6, "y")
-        NzD = self.group_index(lambda_w * 1e6, "z")
-        NyD = self.group_index(lambda_w * 1e6, "y")
-        self.Nmean = (NzD + NyD) / 2.0
-
-        # Compute DeltaK_0
-        self.DeltaK_0 = 2 * np.pi * (nyP / lambda_2w - nzD / lambda_w - nyD / lambda_w)
-
+        
+        # Compute DeltaK_0 using the compute_phase_mismatch method
+        _, _, self.DeltaK_0 = self.compute_phase_mismatch(laser)
         # Proceed with the apodization algorithm using self.DeltaK_0
         w = self.w
         mstart = 2

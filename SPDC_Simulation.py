@@ -68,33 +68,25 @@ class SPDC_Simulation:
     
     def initialize_parameters(self):
         """
-        Initializes the parameters required for the SPDC simulation.
-        This method sets up various physical and simulation parameters by extracting
-        data from the crystal and laser objects, computing necessary refractive indices,
-        group indices, angular frequencies, group velocities, and other simulation-specific
-        values.
-        Steps:
-        1. Ensures the poling pattern of the crystal is generated.
-        2. Extracts crystal and laser properties such as dimensions, wavelengths, and speed of light.
-        3. Computes refractive indices and group indices for the crystal at specific wavelengths.
-        4. Calculates the phase mismatch (DeltaK_0) for the simulation.
-        5. Determines the center angular frequencies for pump and signal photons.
-        6. Computes group velocities for pump, signal, and idler photons.
-        7. Calculates the bandwidth of the laser.
-        8. Prepares the effective poling pattern and spatial coordinates for simulation.
-        Attributes Set:
-        - DeltaK_0: Phase mismatch at the central wavelengths.
-        - Pf0: Center angular frequency of the pump photon.
-        - Df0: Center angular frequency of the signal photon.
-        - KyP: Group velocity for the pump photon.
-        - KzD: Group velocity for the idler photon.
-        - KyD: Group velocity for the signal photon.
-        - bandwidth: Bandwidth of the laser.
-        - xi_eff: Effective poling pattern for the crystal.
-        - z: Spatial coordinates for the simulation.
-        Raises:
-        - AttributeError: If required attributes in the crystal or laser objects are missing.
+        Initializes the parameters required for the SPDC (Spontaneous Parametric Down-Conversion) simulation.
+        This method ensures that the crystal's poling pattern is generated if not already present, extracts
+        necessary data from the crystal and laser objects, computes phase mismatch, and calculates various
+        parameters such as angular frequencies, group velocities, and bandwidth for the simulation.
+        Attributes:
+            DeltaK_0 (float): The initial phase mismatch value computed from the crystal and laser properties.
+            Pf0 (float): The center angular frequency of the pump wave.
+            Df0 (float): The center angular frequency of the down-converted signal and idler waves.
+            K_pump (float): The group velocity of the pump wave.
+            K_idler (float): The group velocity of the idler wave.
+            K_signal (float): The group velocity of the signal wave.
+            bandwidth (float): The bandwidth of the laser in angular frequency.
+            xi_eff (numpy.ndarray): The effective poling pattern of the crystal, flipped and converted to float64.
+            z (numpy.ndarray): The spatial positions along the crystal.
+        Notes:
+            - This method relies on the `generate_poling` and `compute_phase_mismatch` methods of the `Crystal` class.
+            - The laser's FWHM (Full Width at Half Maximum) is used to calculate the bandwidth.
         """
+        
         # Ensure that the poling pattern is generated
         if self.crystal.sarray is None:
             self.crystal.generate_poling(self.laser)
@@ -110,29 +102,19 @@ class SPDC_Simulation:
         lambda_2w = self.laser.lambda_2w
         c = self.laser.c
 
-        # Refractive indices at central wavelengths
-        nyD = self.crystal.refractive_index(lambda_w * 1e6, "y")
-        nzD = self.crystal.refractive_index(lambda_w * 1e6, "z")
-        nyP = self.crystal.refractive_index(lambda_2w * 1e6, "y")
-
-        # Group indices
-        NyP = self.crystal.group_index(lambda_2w * 1e6, "y")
-        NzD = self.crystal.group_index(lambda_w * 1e6, "z")
-        NyD = self.crystal.group_index(lambda_w * 1e6, "y")
-
-        # Compute DeltaK_0
-        self.DeltaK_0 = 2 * np.pi * (nyP / lambda_2w 
-                                   - nzD / lambda_w 
-                                   - nyD / lambda_w)
+    
+        # Use compute_phase_mismatch from the Crystal class
+        _, (N_pump, N_signal, N_idler), DeltaK_0 = self.crystal.compute_phase_mismatch(self.laser)
+        self.DeltaK_0 = DeltaK_0
 
         # Center angular frequencies
         self.Pf0 = 2 * np.pi * c / lambda_2w
         self.Df0 = self.Pf0 / 2
 
         # Group velocities
-        self.KyP = NyP / c  # k' pump
-        self.KzD = NzD / c  # k' idler
-        self.KyD = NyD / c  # k' signal
+        self.K_pump = N_pump / c  # k' pump
+        self.K_idler = N_idler / c  # k' idler
+        self.K_signal = N_signal / c  # k' signal
 
         # Bandwidth
         self.bandwidth = (2 * np.pi * c) * self.laser.FWHM / (lambda_2w ** 2 * 2 * np.sqrt(np.log(2)))
@@ -185,7 +167,7 @@ class SPDC_Simulation:
         y = xi_eff[:, None, None] * np.exp(-1j * DeltaK[None, :, :] * z[:, None, None])
         return np.trapz(y, z, axis=0)
 
-    def run_simulation_optimized(self, steps=200, dev=5):
+    def run_simulation_optimized(self, steps=100, dev=5):
         """
         Optimized SPDC simulation to compute the Joint Spectral Amplitude (JSA),
         pump profile, phase, intensity, and related parameters.
@@ -195,9 +177,9 @@ class SPDC_Simulation:
         z = self.z
         xi_eff = self.xi_eff
         DeltaK_0 = self.DeltaK_0
-        KyP = self.KyP
-        KzD = self.KzD
-        KyD = self.KyD
+        K_pump = self.K_pump
+        K_idler = self.K_idler
+        K_signal = self.K_signal
         Df0 = self.Df0
         bandwidth = self.bandwidth
         Pf0 = self.Pf0
@@ -209,7 +191,7 @@ class SPDC_Simulation:
         # Precompute constants
         fs = 2 * np.pi * c / signal_wavelengths[:, None]  # Signal frequencies (column vector)
         fi = 2 * np.pi * c / idler_wavelengths[None, :]  # Idler frequencies (row vector)
-        DeltaK_1 = (KyP - KyD) * (fs - Df0) + (KyP - KzD) * (fi - Df0)
+        DeltaK_1 = (K_pump - K_signal) * (fs - Df0) + (K_pump - K_idler) * (fi - Df0)
         DeltaK = DeltaK_0 + DeltaK_1
         S = np.exp(-((fi + fs - Pf0) ** 2) / (2 * bandwidth ** 2))  # Gaussian pump spectrum
     
@@ -237,7 +219,7 @@ class SPDC_Simulation:
         self.K = 1 / self.Purity
         self.s_vals = s_vals
 
-    def run_simulation(self, steps=200, dev=5):
+    def run_simulation(self, steps=100, dev=5):
         """
         Runs the SPDC (Spontaneous Parametric Down-Conversion) simulation to compute 
         the Joint Spectral Amplitude (JSA), pump profile, phase, intensity, and other 
@@ -274,9 +256,9 @@ class SPDC_Simulation:
         z = self.z
         xi_eff = self.xi_eff
         DeltaK_0 = self.DeltaK_0
-        KyP = self.KyP
-        KzD = self.KzD
-        KyD = self.KyD
+        K_pump = self.K_pump
+        K_idler = self.K_idler
+        K_signal = self.K_signal
         Df0 = self.Df0
         bandwidth = self.bandwidth
         Pf0 = self.Pf0
@@ -290,7 +272,7 @@ class SPDC_Simulation:
             for s in range(steps):
                 fs = 2 * np.pi * c / signal_wavelengths[j]
                 fi = 2 * np.pi * c / idler_wavelengths[s]
-                DeltaK_1 = (KyP - KyD) * (fs - Df0) + (KyP - KzD) * (fi - Df0)
+                DeltaK_1 = (K_pump - K_signal) * (fs - Df0) + (K_pump - K_idler) * (fi - Df0)
                 DeltaK = DeltaK_0 + DeltaK_1
                 S = np.exp(-((fi + fs - Pf0) ** 2) / (2 * bandwidth ** 2))
                 Pump[s, j] = S ** 2
