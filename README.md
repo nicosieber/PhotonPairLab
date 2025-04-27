@@ -12,4 +12,5 @@ Object oriented implementation of the simulation of joint spectral amplitudes an
 
 ... Apodization algorithm
 1. Francesco Graffitti, Dmytro Kundys, Derryck T Reid, AgataMBrańczyk and Alessandro Fedrizzi, Quantum Sci. Technol. 2 (2017)035001 (https://doi.org/10.1088/2058-9565/aa78d4)
+2. Tambasco et al., Vol. 24, No. 17 | 22 Aug 2016 | OPTICS EXPRESS 19616
 

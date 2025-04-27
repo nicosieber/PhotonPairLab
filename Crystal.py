@@ -6,7 +6,7 @@ import math
 from Materials import BaseMaterial
 
 class Crystal:
-    def __init__(self, Lc: float, Lo: float, T: float, w: float, mstart: int, material: BaseMaterial):
+    def __init__(self, Lc: float, Lo: float, T: float, w: float, material: BaseMaterial):
         """
         Initializes a Crystal object with its physical and material properties.
         Args:
@@ -14,14 +14,12 @@ class Crystal:
             Lo (float): Physical length of the crystal in meters.
             T (float): Temperature of the crystal in degrees Celsius.
             w (float): Domain width parameter in meters.
-            mstart (int): Starting index for the apodization algorithm.
             material (BaseMaterial): Material database object containing the crystal's material properties.
         Attributes:
             Lc (float): Coherence length of the crystal.
             Lo (float): Physical length of the crystal.
             T (float): Temperature of the crystal.
             w (float): Domain width parameter.
-            mstart (int): Starting index for the apodization algorithm.
             material (BaseMaterial): Material database object.
             nm (float): Conversion factor for nanometers to meters (1e-9).
             um (float): Conversion factor for micrometers to meters (1e-6).
@@ -39,7 +37,6 @@ class Crystal:
         self.Lo = Lo        # Physical length of the crystal (m)
         self.T = T          # Temperature (°C)
         self.w = w          # Domain width parameter (m)
-        self.mstart = mstart  # Starting index for the apodization algorithm
         self.material = material  # Materials database object
 
         # Constants
@@ -83,7 +80,7 @@ class Crystal:
         Returns:
             float: The value of the Gaussian function evaluated at the given position `z`.
         """
-        return np.exp(-((z - L / 2) ** 2) / (L ** 2 / 8))
+        return np.exp(-((z - L / 2) ** 2) / (L ** 2 / 8)) # L**2 is divided by 8 as suggested by the reference
 
     def Atarget(self, w, m, L, Lc, DeltaK):
         """
@@ -106,9 +103,9 @@ class Crystal:
         y = g * cos_term * exp_term
         return -1j * np.trapz(y, z)
 
-    def Am2(self, w, altered_z, m, Lc, sn):
+    def Am(self, w, altered_z, m, Lc, sn):
         """
-        Computes the amplitude modulation function Am2 for a given set of parameters.
+        Computes the amplitude modulation function Am for a given set of parameters.
 
         Parameters:
             w (float): The angular frequency variable.
@@ -221,7 +218,7 @@ class Crystal:
             - The method uses the refractive indices and group indices of the crystal at the 
               fundamental and second harmonic wavelengths to compute the phase mismatch (DeltaK_0).
             - The apodization algorithm is applied iteratively to determine the optimal poling pattern.
-            - The method assumes that the crystal parameters (e.g., `w`, `mstart`, `L`, `Lc`) 
+            - The method assumes that the crystal parameters (e.g., `w`, `L`, `Lc`) 
               are already defined as attributes of the class.
         """
         # Compute refractive indices at central wavelengths
@@ -243,7 +240,7 @@ class Crystal:
 
         # Proceed with the apodization algorithm using self.DeltaK_0
         w = self.w
-        mstart = self.mstart
+        mstart = 2
         L = self.L
         Lc = self.Lc
         DeltaK = self.DeltaK_0
@@ -254,7 +251,7 @@ class Crystal:
         altered_z = np.linspace(0, num_iterations * w, num_iterations + 1)
         # Initialize sarray
         sarray = np.zeros(num_iterations + 1, dtype=int)
-        sarray[0] = 1
+        sarray[0] = -1
         atarray = np.zeros(num_iterations, dtype=complex)
         amuparray = np.zeros(num_iterations, dtype=complex)
         amdownarray = np.zeros(num_iterations, dtype=complex)
@@ -267,11 +264,11 @@ class Crystal:
 
             # Test with sarray[idx + 1] = 1 (up)
             sarray[idx + 1] = 1
-            amup = self.Am2(w, altered_z[: idx + 2], m, Lc, sarray[: idx + 2])
+            amup = self.Am(w, altered_z[: idx + 2], m, Lc, sarray[: idx + 2])
 
             # Test with sarray[idx + 1] = -1 (down)
             sarray[idx + 1] = -1
-            amdown = self.Am2(w, altered_z[: idx + 2], m, Lc, sarray[: idx + 2])
+            amdown = self.Am(w, altered_z[: idx + 2], m, Lc, sarray[: idx + 2])
 
             # Compute errors
             eup = np.abs(at - amup)
