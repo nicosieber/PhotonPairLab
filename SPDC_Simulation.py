@@ -4,62 +4,6 @@ from matplotlib import cm
 from scipy.optimize import curve_fit
 
 class SPDC_Simulation:
-    """
-    SPDC_Simulation Class
-    This class simulates the process of Spontaneous Parametric Down-Conversion (SPDC) 
-    in a nonlinear crystal pumped by a laser. It calculates various properties such as 
-    the Joint Spectral Amplitude (JSA), Joint Spectral Intensity (JSI), Schmidt coefficients, 
-    and other related quantities. It also provides visualization methods for the results.
-    Attributes:
-        crystal (object): The nonlinear crystal used in the SPDC process.
-        laser (object): The laser used to pump the nonlinear crystal.
-        DeltaK_0 (float): The phase mismatch at the central wavelengths.
-        Pf0 (float): The center angular frequency of the pump.
-        Df0 (float): The center angular frequency of the down-converted photons.
-        KyP (float): Group velocity of the pump in the y-direction.
-        KzD (float): Group velocity of the idler in the z-direction.
-        KyD (float): Group velocity of the signal in the y-direction.
-        bandwidth (float): Bandwidth of the pump laser.
-        xi_eff (ndarray): Effective nonlinear coefficient array for the crystal.
-        z (ndarray): Position array within the crystal.
-        signal_wavelengths (ndarray): Signal wavelength array.
-        idler_wavelengths (ndarray): Idler wavelength array.
-        Pump (ndarray): Pump pulse envelope matrix.
-        Phase (ndarray): Phase matching function matrix.
-        JSI (ndarray): Joint Spectral Intensity (JSI) matrix.
-        JSA (ndarray): Joint Spectral Amplitude (JSA) matrix.
-        Purity (float): Purity of the quantum state.
-        K (float): Schmidt number, representing the degree of entanglement.
-        s_vals (ndarray): Schmidt coefficients.
-    Methods:
-        __init__(crystal, laser):
-            Initializes the SPDC_Simulation object with the given crystal and laser.
-        gaussian(x, amp, cen, wid, off):
-            Defines a Gaussian function for fitting purposes.
-        initialize_parameters():
-            Initializes the parameters required for the SPDC simulation, including 
-            refractive indices, group velocities, and phase mismatch.
-        run_simulation(steps=200, dev=5):
-            Runs the SPDC simulation to calculate the JSA, JSI, Schmidt coefficients, 
-            and other related quantities.
-        plot_pump():
-            Plots the normalized pump pulse envelope (PPE).
-        plot_phase():
-            Plots the normalized phase matching function (PMF).
-        plot_jsi():
-            Plots the normalized Joint Spectral Intensity (JSI).
-        plot_jsa():
-            Plots the normalized Joint Spectral Amplitude (JSA).
-        plot_schmidt_coefficients():
-            Plots the Schmidt coefficients and the marginal distributions of the JSI.
-        plot_poling():
-            Plots the poling profile of the nonlinear crystal.
-        plot_poling2():
-            Plots an alternative representation of the poling profile.
-        plot_results():
-            Plots all the main results of the SPDC simulation, including the pump, 
-            phase matching, JSI, JSA, Schmidt coefficients, and optionally the poling profile.
-    """
     def __init__(self, crystal, laser):
         self.crystal = crystal
         self.laser = laser
