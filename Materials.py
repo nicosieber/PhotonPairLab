@@ -1,6 +1,5 @@
 import numpy as np
-from sympy import Symbol, diff
-import sympy
+from scipy.misc import derivative
 
 class BaseMaterial:
     """
@@ -13,12 +12,22 @@ class BaseMaterial:
         """
         raise NotImplementedError("This method should be implemented by subclasses.")
 
-    def group_index(self, wavelength, axis, temperature=None):
-        """
-        Calculate the group index for a given wavelength, axis and temperature.
-        Must be implemented by subclasses.
-        """
-        raise NotImplementedError("This method should be implemented by subclasses.")
+    def group_index(self, wavelength, axis, temperature=25):
+        try:
+            n_func = lambda wavelength: self.refractive_index(wavelength, axis, temperature)
+            
+            # Calculate the refractive index at the given wavelength
+            n = n_func(wavelength)
+            # Use numerical differentiation to calculate dn/dλ
+            dn_dlambda = derivative(n_func, wavelength, dx=1e-9)
+            
+            # Calculate the group index
+            group_index_value = n - wavelength * dn_dlambda
+            
+            return group_index_value
+
+        except Exception as e:
+            raise ValueError(f"Error in group_index: {e}")  
 
 class KTP1(BaseMaterial):
     """
@@ -134,70 +143,6 @@ class KTP1(BaseMaterial):
 
         return n
 
-    def group_index(self, wavelength, axis, temperature=25):
-        """
-        Calculate the group index of the material for a given wavelength, axis, and temperature.
-        The group index is computed symbolically using the Sellmeier coefficients for the material
-        and optionally corrected for temperature effects if temperature correction coefficients are available.
-        Args:
-            wavelength (float): The wavelength (in micrometers) at which to calculate the group index.
-            axis (str): The optical axis ("x", "y", or "z") for which the group index is calculated.
-            temperature (float, optional): The temperature (in degrees Celsius) at which to calculate
-                the group index. Defaults to 25°C.
-        Returns:
-            float: The calculated group index for the given wavelength, axis, and temperature.
-        Raises:
-            ValueError: If the Sellmeier coefficients or temperature correction coefficients
-                for the specified axis are not available or invalid.
-        """
-        
-        x = Symbol("x")
-        try:
-            coeffs = self.get_sellmeier_coefficients(axis)
-        except ValueError as e:
-            raise ValueError(f"Error in group_index: {e}")
-
-        # Extract Sellmeier coefficients
-        A = coeffs["A"]
-        B = coeffs["B"]
-        C = coeffs["C"]
-        D = coeffs.get("D", 0)
-        E = coeffs.get("E", 0)
-        F = coeffs.get("F", 0)
-
-        # Compute refractive index symbolically
-        # Use the appropriate formula based on the number of coefficients
-        if E == 0 and F == 0:  # Only four coefficients
-            n_squared = A + B / (1 - C / x**2) - D * x**2
-        else:  # Six coefficients
-            n_squared = (
-                A
-                + B / (1 - C / x**2)
-                + D / (1 - E / x**2)
-                - F * x**2
-            )
-        n = sympy.sqrt(n_squared)
-        
-        # Apply temperature corrections symbolically
-        try:
-            temp_coeffs = self.get_temperature_corrections(axis)
-            if temp_coeffs:
-                n1 = temp_coeffs["n1"]
-                n2 = temp_coeffs["n2"]
-                deln = (
-                    (n1[0] + n1[1] / x + n1[2] / x**2 + n1[3] / x**3) * (temperature - 25)
-                    + (n2[0] + n2[1] / x + n2[2] / x**2 + n2[3] / x**3) * (temperature - 25)**2
-                )
-                n += deln
-        except ValueError:
-            # Skip temperature correction if not available
-            pass
-
-        # Compute group index symbolically
-        group_index_expr = n - x * diff(n, x)
-        group_index_value = group_index_expr.subs({x: wavelength})
-        return float(group_index_value)
-
 class KTP2(BaseMaterial):
     """
     A class to encapsulate and manage material properties for nonlinear crystals.
@@ -293,58 +238,6 @@ class KTP2(BaseMaterial):
             pass
 
         return n
-
-    def group_index(self, wavelength, axis, temperature=25):
-        """
-        Calculate the group index of the material for a given wavelength, axis, and temperature.
-        The group index is computed symbolically using the Sellmeier coefficients for the material
-        and optionally corrected for temperature effects if temperature correction coefficients are available.
-        Args:
-            wavelength (float): The wavelength (in micrometers) at which to calculate the group index.
-            axis (str): The optical axis ("x", "y", or "z") for which the group index is calculated.
-            temperature (float, optional): The temperature (in degrees Celsius) at which to calculate
-                the group index. Defaults to 25°C.
-        Returns:
-            float: The calculated group index for the given wavelength, axis, and temperature.
-        Raises:
-            ValueError: If the Sellmeier coefficients or temperature correction coefficients
-                for the specified axis are not available or invalid.
-        """
-        
-        x = Symbol("x")
-        try:
-            coeffs = self.get_sellmeier_coefficients(axis)
-        except ValueError as e:
-            raise ValueError(f"Error in group_index: {e}")
-
-         # Extract Sellmeier coefficients
-        A = coeffs["A"]
-        B = coeffs["B"]
-        C = coeffs["C"]
-        D = coeffs["D"]
-
-        # Compute refractive index using Sellmeier equation
-        n_squared = (
-            A
-            + B / (x**2 - C)
-            - D * x**2
-        )
-        n = sympy.sqrt(n_squared)
-        
-        # Apply temperature corrections symbolically
-        try:
-            temp_coeff = self.get_temperature_corrections(axis)
-            if temp_coeff:
-                n += temp_coeff * (temperature - 25)
-        except ValueError:
-            # Skip temperature correction if not available
-            pass
-
-        # Compute group index symbolically
-        group_index_expr = n - x * diff(n, x)
-        group_index_value = group_index_expr.subs({x: wavelength})
-
-        return float(group_index_value)
     
 
 class KTP3(BaseMaterial):
@@ -443,63 +336,4 @@ class KTP3(BaseMaterial):
             pass
 
         return n
-    
-    def group_index(self, wavelength, axis, temperature=25):
-        """
-        Calculate the group index of the material for a given wavelength, axis, and temperature.
-        The group index is computed symbolically using the Sellmeier coefficients for the material
-        and optionally corrected for temperature effects if temperature correction coefficients are available.
-        Args:
-            wavelength (float): The wavelength (in micrometers) at which to calculate the group index.
-            axis (str): The optical axis ("x", "y", or "z") for which the group index is calculated.
-            temperature (float, optional): The temperature (in degrees Celsius) at which to calculate
-                the group index. Defaults to 25°C.
-        Returns:
-            float: The calculated group index for the given wavelength, axis, and temperature.
-        Raises:
-            ValueError: If the Sellmeier coefficients or temperature correction coefficients
-                for the specified axis are not available or invalid.
-        """
         
-        x = Symbol("x")
-        try:
-            coeffs = self.get_sellmeier_coefficients(axis)
-        except ValueError as e:
-            raise ValueError(f"Error in group_index: {e}")
-
-         # Extract Sellmeier coefficients
-        A = coeffs["A"]
-        B = coeffs["B"]
-        C = coeffs["C"]
-        D = coeffs["D"]
-        E = coeffs["E"]
-
-        # Compute refractive index using Sellmeier equation
-        n_squared = (
-            A
-            + B / (x**2 - C)
-            + D / (x**2 - E)
-        )
-        
-        n = sympy.sqrt(n_squared)
-        
-        # Apply temperature corrections if available
-        try:
-            temp_coeffs = self.get_temperature_corrections(axis)
-            A = temp_coeffs["A"]
-            B = temp_coeffs["B"]
-            C = temp_coeffs["C"]
-            D = temp_coeffs["D"]
-            if temp_coeffs:
-                n += (A / x**3 - B / x**2 + C / x + D) * 1e-5 * (temperature - 25)
-        except ValueError:
-            # Skip temperature correction if not available
-            pass
-
-        # Compute group index symbolically
-        group_index_expr = n - x * diff(n, x)
-        group_index_value = group_index_expr.subs({x: wavelength})
-
-        return float(group_index_value)
-    
-    

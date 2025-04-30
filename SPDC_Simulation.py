@@ -111,7 +111,7 @@ class SPDC_Simulation:
         y = xi_eff[:, None, None] * np.exp(-1j * DeltaK[None, :, :] * z[:, None, None])
         return np.trapz(y, z, axis=0)
 
-    def run_simulation_optimized(self, steps=100, dev=5):
+    def run_simulation(self, steps=100, dev=5):
         """
         Optimized SPDC simulation to compute the Joint Spectral Amplitude (JSA),
         pump profile, phase, intensity, and related parameters.
@@ -163,82 +163,7 @@ class SPDC_Simulation:
         self.K = 1 / self.Purity
         self.s_vals = s_vals
 
-    def run_simulation(self, steps=100, dev=5):
-        """
-        Runs the SPDC (Spontaneous Parametric Down-Conversion) simulation to compute 
-        the Joint Spectral Amplitude (JSA), pump profile, phase, intensity, and other 
-        related parameters. Additionally, performs Schmidt decomposition to calculate 
-        the purity and Schmidt number.
-
-        Parameters:
-            steps (int, optional): Number of steps for discretizing the wavelength range. 
-                                   Default is 200.
-            dev (float, optional): Deviation in nanometers from the central wavelength 
-                                   for the wavelength range. Default is 5.
-
-        Attributes Set:
-            g (numpy.ndarray): Array of signal wavelengths.
-            h (numpy.ndarray): Array of idler wavelengths.
-            Pump (numpy.ndarray): 2D array representing the pump profile.
-            Phase (numpy.ndarray): 2D array representing the phase profile.
-            JSI (numpy.ndarray): 2D array representing the intensity profile.
-            JSA (numpy.ndarray): 2D array representing the Joint Spectral Amplitude.
-            Purity (float): Purity of the quantum state obtained from Schmidt decomposition.
-            K (float): Schmidt number, representing the degree of entanglement.
-            s_vals (numpy.ndarray): Singular values from the Schmidt decomposition.
-
-        Notes:
-            - The simulation assumes a Gaussian pump spectrum.
-            - The Schmidt decomposition is performed using Singular Value Decomposition (SVD).
-            - The purity is calculated as the sum of the fourth powers of the normalized 
-              singular values.
-        """
-        lambda_w = self.laser.lambda_w
-        c = self.laser.c
-        idler_wavelengths = np.linspace(lambda_w - dev * 1e-9, lambda_w + dev * 1e-9, steps)
-        signal_wavelengths = np.linspace(lambda_w - dev * 1e-9, lambda_w + dev * 1e-9, steps)
-        z = self.z
-        xi_eff = self.xi_eff
-        DeltaK_0 = self.DeltaK_0
-        K_pump = self.K_pump
-        K_idler = self.K_idler
-        K_signal = self.K_signal
-        Df0 = self.Df0
-        bandwidth = self.bandwidth
-        Pf0 = self.Pf0
-
-        Pump = np.zeros((steps, steps))
-        Phase = np.zeros((steps, steps))
-        JSI = np.zeros((steps, steps))
-        JSA = np.zeros((steps, steps))
-
-        for j in range(steps):
-            for s in range(steps):
-                fs = 2 * np.pi * c / signal_wavelengths[j]
-                fi = 2 * np.pi * c / idler_wavelengths[s]
-                DeltaK_1 = (K_pump - K_signal) * (fs - Df0) + (K_pump - K_idler) * (fi - Df0)
-                DeltaK = DeltaK_0 + DeltaK_1
-                S = np.exp(-((fi + fs - Pf0) ** 2) / (2 * bandwidth ** 2))
-                Pump[s, j] = S ** 2
-                y = xi_eff * 1000 * np.exp(-1j * DeltaK * z)
-                phase = np.trapz(y, z)
-                Phase[s, j] = abs(phase ** 2)
-                Amp = S * phase
-                JSI[s, j] = np.real(np.conj(Amp) * Amp)
-                JSA[s, j] = abs(np.real(Amp))
-        self.signal_wavelengths = signal_wavelengths
-        self.idler_wavelengths = idler_wavelengths
-        self.Pump = Pump
-        self.Phase = Phase
-        self.JSI = JSI
-        self.JSA = JSA
-
-        # Schmidt decomposition
-        u, s_vals, vh = np.linalg.svd(JSA / np.amax(JSA), full_matrices=True)
-        s_vals = s_vals / np.sqrt(np.sum(s_vals ** 2))  # Normalize
-        self.Purity = np.sum(s_vals ** 4)
-        self.K = 1 / self.Purity
-        self.s_vals = s_vals
+    
 
     # Plotting methods remain unchanged
     def plot_pump(self):
