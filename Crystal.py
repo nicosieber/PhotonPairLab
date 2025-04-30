@@ -1,7 +1,4 @@
 import numpy as np
-from sympy import Symbol, diff
-import sympy
-import math
 
 from Materials import BaseMaterial
 
@@ -258,7 +255,7 @@ class Crystal:
         Lc = self.Lc
         DeltaK = self.DeltaK_0
 
-        num_iterations = math.ceil(L / w) + 1  # Total number of iterations
+        num_iterations = int(np.ceil(L / w)) + 1# Total number of iterations
 
         # Precompute altered_z
         altered_z = np.linspace(0, num_iterations * w, num_iterations + 1)
