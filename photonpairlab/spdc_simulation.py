@@ -162,7 +162,7 @@ class SPDC_Simulation:
         self.Purity = np.sum(s_vals ** 4)
         self.K = 1 / self.Purity
         self.s_vals = s_vals
-
+        self.dev = dev
     
 
     # Plotting methods remain unchanged
@@ -170,7 +170,7 @@ class SPDC_Simulation:
         cmap = cm.viridis
         f_size = 12
         number_ticklabels = 5
-        dev = 5
+        
         lambda_w_nm = self.laser.lambda_w * 1e9
         Pump = self.Pump
 
@@ -179,10 +179,10 @@ class SPDC_Simulation:
         im1.set_interpolation("bilinear")
         im1.set_extent(
             [
-                np.floor(lambda_w_nm) - dev,
-                np.floor(lambda_w_nm) + dev,
-                np.floor(lambda_w_nm) + dev,
-                np.floor(lambda_w_nm) - dev,
+                np.floor(lambda_w_nm) - self.dev,
+                np.floor(lambda_w_nm) + self.dev,
+                np.floor(lambda_w_nm) + self.dev,
+                np.floor(lambda_w_nm) - self.dev,
             ]
         )
         axs.invert_yaxis()
@@ -208,10 +208,10 @@ class SPDC_Simulation:
         im1.set_interpolation("bilinear")
         im1.set_extent(
             [
-                np.floor(lambda_w_nm) - dev,
-                np.floor(lambda_w_nm) + dev,
-                np.floor(lambda_w_nm) + dev,
-                np.floor(lambda_w_nm) - dev,
+                np.floor(lambda_w_nm) - self.dev,
+                np.floor(lambda_w_nm) + self.dev,
+                np.floor(lambda_w_nm) + self.dev,
+                np.floor(lambda_w_nm) - self.dev,
             ]
         )
         axs.invert_yaxis()
@@ -237,10 +237,10 @@ class SPDC_Simulation:
         im1.set_interpolation("bilinear")
         im1.set_extent(
             [
-                np.floor(lambda_w_nm) - dev,
-                np.floor(lambda_w_nm) + dev,
-                np.floor(lambda_w_nm) + dev,
-                np.floor(lambda_w_nm) - dev,
+                np.floor(lambda_w_nm) - self.dev,
+                np.floor(lambda_w_nm) + self.dev,
+                np.floor(lambda_w_nm) + self.dev,
+                np.floor(lambda_w_nm) - self.dev,
             ]
         )
         axs.invert_yaxis()
@@ -266,10 +266,10 @@ class SPDC_Simulation:
         im1.set_interpolation("bilinear")
         im1.set_extent(
             [
-                np.floor(lambda_w_nm) - dev,
-                np.floor(lambda_w_nm) + dev,
-                np.floor(lambda_w_nm) + dev,
-                np.floor(lambda_w_nm) - dev,
+                np.floor(lambda_w_nm) - self.dev,
+                np.floor(lambda_w_nm) + self.dev,
+                np.floor(lambda_w_nm) + self.dev,
+                np.floor(lambda_w_nm) - self.dev,
             ]
         )
         axs.invert_yaxis()
