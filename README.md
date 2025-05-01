@@ -1,6 +1,6 @@
 # PhotonPairLab
 ## Description
-Object oriented implementation of the simulation of joint spectral amplitudes and other related properties for SPDC.
+Object oriented implementation of the simulation of joint spectral amplitudes and other properties related to SPDC.
 
 ## References for ...
 ... Sellmeier coefficients and temperature corrections
