@@ -156,11 +156,12 @@ class Crystal:
 
         Parameters:
             laser: object
-                The laser object containing relevant parameters for custom poling.
+                The laser object containing relevant parameters for the custom poling.
             mode: str, optional
                 The mode of poling to generate. Options are:
                 - 'periodic': Generates a periodic poling configuration.
-                - 'custom': Generates a custom poling configuration based on the laser parameters.
+                - 'sub-coherence': Generates a custom poling configuration based on the
+                   sub-coherence length apodization algorithm in https://doi.org/10.1088/2058-9565/aa78d4.
                 Default is 'periodic'.
             resolution: int, optional
                 The resolution parameter for periodic poling. Higher values result in finer resolution.
@@ -171,8 +172,8 @@ class Crystal:
         """
         if mode == 'periodic':
             self.generate_periodic_poling(resolution=resolution)
-        elif mode == 'custom':
-            self.generate_custom_poling(laser)
+        elif mode == 'sub-coherence':
+            self.generate_subcoh_poling(laser)
         else:
             raise ValueError(f"Unsupported mode: {mode}")
 
@@ -210,7 +211,7 @@ class Crystal:
         # Calculate z values directly based on the length of sarray
         self.z = np.linspace(-self.L / 2, self.L / 2, len(self.sarray))
 
-    def generate_custom_poling(self, laser):
+    def generate_subcoh_poling(self, laser):
         """
         Generates a custom poling pattern for the nonlinear crystal based on the input laser parameters.
 
