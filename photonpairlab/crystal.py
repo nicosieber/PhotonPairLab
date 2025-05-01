@@ -43,9 +43,11 @@ class Crystal:
         self.mm = 1e-3
 
         # Temperature Expansion of crystal
-        # (S. Emanueli & A. Arie, App. Opt, vol. 42, No. 33 (2003))
-        self.L = self.Lo * (1 + 6.7e-6 * (self.T - 25) + 11e-9 * (self.T - 25) ** 2)
-
+        if self.spdc == "type-II":
+            self.L = self.material.thermal_expansion(self.Lo, "z", self.T)
+        else:
+            raise ValueError(f"Unsupported SPDC type: {self.spdc}")
+            
         # Poling pattern attributes (to be computed)
         self.sarray = None
         self.atarray = None
@@ -77,8 +79,8 @@ class Crystal:
         if self.spdc == "type-II":
             # Pump has one polarization, signal and idler have orthogonal polarizations
             n_pump = self.refractive_index(lambda_2w * 1e6, "y")
-            n_signal = self.refractive_index(lambda_w * 1e6, "y")
-            n_idler = self.refractive_index(lambda_w * 1e6, "z")
+            n_signal = self.refractive_index(lambda_w * 1e6, "z")
+            n_idler = self.refractive_index(lambda_w * 1e6, "y")
 
             # Group velocities
             N_pump = self.group_index(lambda_2w * 1e6, "y")

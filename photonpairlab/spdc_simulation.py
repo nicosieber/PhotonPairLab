@@ -164,6 +164,8 @@ class SPDC_Simulation:
         self.s_vals = s_vals
         self.dev = dev
     
+    def compute_optimal_temp(self):
+        pass
 
     # Plotting methods remain unchanged
     def plot_pump(self):

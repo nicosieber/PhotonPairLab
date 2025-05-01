@@ -7,7 +7,9 @@ class KTP3(BaseMaterial):
 
     References for Sellmeier coefficients and temperature corrections:
     - Kiyoshi Kato and Eiko Takaoka, "Sellmeier and thermo-optic dispersion formulas for KTP," Appl. Opt. 41, 5040-5044 (2002) 
-
+    - Thermal expansion:
+        - S. Emanueli & A. Arie, App. Opt, vol. 42, No. 33 (2003)
+        - No other values / references found
     """
     def __init__(self):
         # Dictionary to store material properties
@@ -21,6 +23,9 @@ class KTP3(BaseMaterial):
                 "x": {"A": 0.1717, "B": 0.5353, "C": 0.8416, "D": 0.1627},
                 "y": {"A": 0.1997, "B": 0.4063, "C": 0.5154, "D": 0.5425},
                 "z": {"A": 0.9221, "B": 2.9220, "C": 3.6677, "D": 0.1897},
+            },
+            "thermal_expansion": {
+                "z": {"alpha": 6.7e-6, "beta": 11e-9},
             },
         }
         
@@ -97,3 +102,43 @@ class KTP3(BaseMaterial):
             pass
 
         return n
+    
+    def get_thermal_expansion(self, axis):   
+        """
+        Retrieve the thermal expansion coefficients for a given material and axis.
+        """
+        try:
+            return self.material["thermal_expansion"][axis]
+        except KeyError:
+            raise ValueError(f"Thermal expansion coefficients for axis '{axis}' not found.")
+
+    def thermal_expansion(self, length, axis, temperature=25):
+        """
+        Calculate the thermally expanded length of a material along a specified axis.
+        This method computes the expanded length of a material based on its thermal 
+        expansion coefficients and the change in temperature from a reference value 
+        (default is 25°C).
+        Parameters:
+            length (float): The original length of the material (in meters).
+            axis (str): The axis along which the thermal expansion is calculated.
+                        This should be a valid axis for which thermal expansion 
+                        coefficients are defined.
+            temperature (float, optional): The temperature at which the expansion 
+                                            is calculated (in °C). Default is 25°C.
+        Returns:
+            float: The thermally expanded length of the material (in meters).
+        Raises:
+            ValueError: If the specified axis is invalid or if there is an error 
+                        retrieving the thermal expansion coefficients.
+        """
+        try:
+            coeffs = self.get_thermal_expansion(axis)
+        except ValueError as e:
+            raise ValueError(f"Error in refractive_index: {e}")
+        
+        # Extract Sellmeier coefficients
+        alpha = coeffs["alpha"]
+        beta = coeffs["beta"]
+
+        expanded_length = length * (1 + alpha * (temperature - 25) + beta * (temperature - 25)**2)
+        return expanded_length
