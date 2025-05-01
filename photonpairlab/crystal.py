@@ -1,6 +1,6 @@
 import numpy as np
 
-from Materials import BaseMaterial
+from .materials import BaseMaterial
 
 class Crystal:
     def __init__(self, Lc: float, Lo: float, T: float, w: float, material: BaseMaterial, spdc: str = "type-II"):
@@ -255,7 +255,7 @@ class Crystal:
         Lc = self.Lc
         DeltaK = self.DeltaK_0
 
-        num_iterations = int(np.ceil(L / w)) + 1# Total number of iterations
+        num_iterations = int(np.ceil(L / w)) + 1 # Total number of iterations
 
         # Precompute altered_z
         altered_z = np.linspace(0, num_iterations * w, num_iterations + 1)
