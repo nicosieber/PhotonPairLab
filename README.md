@@ -10,7 +10,7 @@ Object oriented implementation of the simulation of joint spectral amplitudes an
 4. https://www.unitedcrystals.com/KTPProp.html
 5. Kato et al., Appl. Opt. 41, 5040-5044 (2002) 
 
-... Apodization algorithm
+... implementation of the sub-coherence-length apodization algorithm
 1. Francesco Graffitti, Dmytro Kundys, Derryck T. Reid, Agata M. Brańczyk and Alessandro Fedrizzi, Quantum Sci. Technol. 2 (2017)035001 (https://doi.org/10.1088/2058-9565/aa78d4)
-2. Tambasco et al., Vol. 24, No. 17 | 22 Aug 2016 | OPTICS EXPRESS 19616
+2. Tambasco et al., Vol. 24, No. 17 | 22 Aug 2016 | OPTICS EXPRESS 19616 (https://opg.optica.org/oe/fulltext.cfm?uri=oe-24-17-19616&id=348856)
 
