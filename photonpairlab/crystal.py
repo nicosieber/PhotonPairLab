@@ -72,6 +72,18 @@ class Crystal:
     def compute_phase_mismatch(self, laser):
         """
         Computes the phase mismatch (DeltaK_0) based on the SPDC type.
+
+        Returns:
+            tuple: A tuple containing:
+                - n_pump (float): Refractive index of the pump.
+                - n_signal (float): Refractive index of the signal.
+                - n_idler (float): Refractive index of the idler.
+                - N_pump (float): Group index of the pump.
+                - N_signal (float): Group index of the signal.
+                - N_idler (float): Group index of the idler.
+                - DeltaK_0 (float): Phase mismatch.
+        Raises:
+            ValueError: If the SPDC type is not supported.
         """
         lambda_w = laser.lambda_w
         lambda_2w = laser.lambda_2w
@@ -98,11 +110,6 @@ class Crystal:
         """
         Computes a Gaussian target function based on the given parameters.
 
-        Parameters:
-            z (float): The position variable.
-            L (float): The length parameter, typically representing the crystal length.
-            lc (float): Unused parameter in the current implementation.
-
         Returns:
             float: The value of the Gaussian function evaluated at the given position `z`.
         """
@@ -111,14 +118,7 @@ class Crystal:
     def Atarget(self, w, m, L, Lc, DeltaK):
         """
         Computes the target amplitude for a given set of parameters.
-
-        Parameters:
-            w (float): The width parameter, typically related to the beam or crystal dimensions.
-            m (int): The number of segments or divisions for the integration range.
-            L (float): The crystal length or a related parameter.
-            Lc (float): The coherence length of the crystal.
-            DeltaK (float): The phase mismatch parameter.
-
+        
         Returns:
             complex: The computed target amplitude as a complex number.
         """
@@ -133,16 +133,6 @@ class Crystal:
         """
         Computes the amplitude modulation function Am for a given set of parameters.
 
-        Parameters:
-            w (float): The angular frequency variable.
-            altered_z (float): The altered spatial coordinate.
-            m (int): The number of poling periods.
-            Lc (float): The coherence length of the crystal.
-            sn (array-like): The poling array, which must have a length equal to `m`.
-
-        Returns:
-            complex: The computed amplitude modulation value.
-
         Raises:
             ValueError: If the length of the poling array `sn` is not equal to `m`.
         """
@@ -155,19 +145,6 @@ class Crystal:
     def generate_poling(self,laser,mode='periodic',resolution=5):
         """
         Generates the poling configuration for the crystal based on the specified mode.
-
-        Parameters:
-            laser: object
-                The laser object containing relevant parameters for the custom poling.
-            mode: str, optional
-                The mode of poling to generate. Options are:
-                - 'periodic': Generates a periodic poling configuration.
-                - 'sub-coherence': Generates a custom poling configuration based on the
-                   sub-coherence length apodization algorithm in https://doi.org/10.1088/2058-9565/aa78d4.
-                Default is 'periodic'.
-            resolution: int, optional
-                The resolution parameter for periodic poling. Higher values result in finer resolution.
-                Default is 5.
 
         Raises:
             ValueError: If an unsupported mode is specified.
@@ -190,11 +167,6 @@ class Crystal:
         Parameters:
             resolution (int, optional): The number of subdivisions per coherence length.
                                         Default is 5.
-        Attributes Modified:
-            sarray (numpy.ndarray): The array representing the periodic poling structure
-                                    with alternating polarizations.
-            Lo (float): Adjusted length of the crystal to be an integer multiple of Lc.
-            z (numpy.ndarray): The z-axis values corresponding to the periodic poling structure.
         Notes:
             - The coherence length (Lc) and original crystal length (Lo) must be defined
               as attributes of the class before calling this method.
@@ -227,19 +199,6 @@ class Crystal:
             Pure down-conversion photons through sub-coherence-length domain engineering
             Francesco Graffitti, Dmytro Kundys, Derryck T Reid, AgataMBrańczyk
             and Alessandro Fedrizzi.
-
-        Parameters:
-            laser (object): An object representing the laser, which must have the following attributes:
-                - lambda_w (float): Central wavelength of the fundamental wave (in meters).
-                - lambda_2w (float): Central wavelength of the second harmonic wave (in meters).
-
-        Attributes:
-            sarray (numpy.ndarray): Array representing the poling pattern (1 for "up", -1 for "down").
-            atarray (numpy.ndarray): Array of target amplitudes for each iteration.
-            amuparray (numpy.ndarray): Array of computed amplitudes for "up" orientation.
-            amdownarray (numpy.ndarray): Array of computed amplitudes for "down" orientation.
-            altered_z (numpy.ndarray): Array of altered z-coordinates used in the computation.
-            z (numpy.ndarray): Array of z-coordinates shifted by half the crystal length.
 
         Notes:
             - The method uses the refractive indices and group indices of the crystal at the 

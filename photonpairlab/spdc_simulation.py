@@ -71,7 +71,7 @@ class SPDC_Simulation:
         """
         return amp * np.exp(-(x - cen) ** 2 / wid) + off
     
-    def compute_phase(self,z, xi_eff, DeltaK):
+    def compute_phase_integral(self,z, xi_eff, DeltaK):
         """
         Compute the phase integral for a given set of parameters.
 
@@ -98,6 +98,15 @@ class SPDC_Simulation:
         y = xi_eff[:, None, None] * np.exp(-1j * DeltaK[None, :, :] * z[:, None, None])
         return np.trapz(y, z, axis=0)
 
+    def schmidt_decomposition(self, JSA):
+        # Uses the SVD to compute Schmidt coefficients, purity, and Schmidt number 
+        _, s_vals, _ = np.linalg.svd(JSA / np.amax(JSA), full_matrices=True)
+        s_vals = s_vals / np.sqrt(np.sum(s_vals ** 2))  # Normalize
+        Purity = np.sum(s_vals ** 4)
+        K = 1 / Purity 
+        s_vals = s_vals
+        return s_vals, Purity, K
+
     def run_simulation(self, steps=100, dev=5):
         """
         Vectorized SPDC simulation that uses numpy's broadcasting to compute the Joint Spectral Amplitude (JSA),
@@ -105,37 +114,28 @@ class SPDC_Simulation:
         """
 
         # Generate signal and idler wavelength arrays
-        idler_wavelengths = np.linspace(self.laser.lambda_w - dev * 1e-9, self.laser.lambda_w + dev * 1e-9, steps)
-        signal_wavelengths = np.linspace(self.laser.lambda_w - dev * 1e-9, self.laser.lambda_w + dev * 1e-9, steps)
+        self.idler_wavelengths = np.linspace(self.laser.lambda_w - dev * 1e-9, self.laser.lambda_w + dev * 1e-9, steps)
+        self.signal_wavelengths = np.linspace(self.laser.lambda_w - dev * 1e-9, self.laser.lambda_w + dev * 1e-9, steps)
     
         # Precompute constants
-        fs = 2 * np.pi * self.laser.c / signal_wavelengths[:, None]  # Signal frequencies (column vector)
-        fi = 2 * np.pi * self.laser.c / idler_wavelengths[None, :]  # Idler frequencies (row vector)
+        fs = 2 * np.pi * self.laser.c / self.signal_wavelengths[:, None]  # Signal frequencies (column vector)
+        fi = 2 * np.pi * self.laser.c / self.idler_wavelengths[None, :]  # Idler frequencies (row vector)
         DeltaK_1 = (self.K_pump - self.K_signal) * (fs - self.omega_down) + (self.K_pump - self.K_idler) * (fi - self.omega_down)
         DeltaK = self.DeltaK_0 + DeltaK_1
         S = np.exp(-((fi + fs - self.omega_pump) ** 2) / (2 * self.bandwidth ** 2))  # Gaussian pump spectrum
     
         # Compute Pump, Phase, JSI, and JSA using vectorized operations
-        Pump = S ** 2
-        phase = self.compute_phase(self.z, self.xi_eff, DeltaK)
+        self.Pump = S ** 2
+        phase = self.compute_phase_integral(self.z, self.xi_eff, DeltaK)
         # Compute phase matching function
-        Phase = np.abs(phase) ** 2
+        self.Phase = np.abs(phase) ** 2
         Amp = S * phase
     
-        # Store results
-        self.signal_wavelengths = signal_wavelengths
-        self.idler_wavelengths = idler_wavelengths
-        self.Pump = Pump
-        self.Phase = Phase
         self.JSI = np.abs(Amp) ** 2
         self.JSA = np.abs(Amp)
     
         # Schmidt decomposition
-        u, s_vals, vh = np.linalg.svd(self.JSA / np.amax(self.JSA), full_matrices=True)
-        s_vals = s_vals / np.sqrt(np.sum(s_vals ** 2))  # Normalize
-        self.Purity = np.sum(s_vals ** 4)
-        self.K = 1 / self.Purity
-        self.s_vals = s_vals
+        self.s_vals, self.Purity, self.K = self.schmidt_decomposition(self.JSA)
         self.dev = dev
     
     def compute_optimal_temp(self):
