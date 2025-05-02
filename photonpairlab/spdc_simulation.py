@@ -53,7 +53,7 @@ class SPDC_Simulation:
         # xi_eff and z for simulation
         self.xi_eff = np.flip(self.crystal.sarray.astype("float64"))
         self.z = self.crystal.z
-
+    
     # Define the Gaussian function used for fitting
     def gaussian(self, x, amp, cen, wid, off):
         """
@@ -146,12 +146,10 @@ class SPDC_Simulation:
         cmap = cm.viridis
         f_size = 12
         number_ticklabels = 5
-        
         lambda_w_nm = self.laser.lambda_w * 1e9
-        Pump = self.Pump
 
         fig, axs = plt.subplots(1, 1, sharex=True, constrained_layout=False)
-        im1 = axs.imshow(Pump / np.amax(Pump), cmap=cmap)
+        im1 = axs.imshow(self.Pump / np.amax(self.Pump), cmap=cmap)
         im1.set_interpolation("bilinear")
         im1.set_extent(
             [
@@ -175,12 +173,11 @@ class SPDC_Simulation:
         cmap = cm.viridis
         f_size = 12
         number_ticklabels = 5
-        dev = 5
+
         lambda_w_nm = self.laser.lambda_w * 1e9
-        Phase = self.Phase
 
         fig, axs = plt.subplots(1, 1, sharex=True, constrained_layout=False)
-        im1 = axs.imshow(Phase / np.amax(Phase), cmap=cmap)
+        im1 = axs.imshow(self.Phase / np.amax(self.Phase), cmap=cmap)
         im1.set_interpolation("bilinear")
         im1.set_extent(
             [
@@ -204,12 +201,11 @@ class SPDC_Simulation:
         cmap = cm.viridis
         f_size = 12
         number_ticklabels = 5
-        dev = 5
+
         lambda_w_nm = self.laser.lambda_w * 1e9
-        JSI = self.JSI
 
         fig, axs = plt.subplots(1, 1, sharex=True, constrained_layout=False)
-        im1 = axs.imshow(JSI / np.amax(JSI), cmap=cmap)
+        im1 = axs.imshow(self.JSI / np.amax(self.JSI), cmap=cmap)
         im1.set_interpolation("bilinear")
         im1.set_extent(
             [
@@ -233,12 +229,11 @@ class SPDC_Simulation:
         cmap = cm.viridis
         f_size = 12
         number_ticklabels = 5
-        dev = 5
+
         lambda_w_nm = self.laser.lambda_w * 1e9
-        JSA = self.JSA
 
         fig, axs = plt.subplots(1, 1, sharex=True, constrained_layout=False)
-        im1 = axs.imshow(JSA / np.amax(JSA), cmap=cmap)
+        im1 = axs.imshow(self.JSA / np.amax(self.JSA), cmap=cmap)
         im1.set_interpolation("bilinear")
         im1.set_extent(
             [
@@ -259,47 +254,42 @@ class SPDC_Simulation:
         plt.show()
 
     def plot_schmidt_coefficients(self):
-        # Schmidt coefficients
-        s_vals = self.s_vals
-        JSI = self.JSI
-        idler_wavelengths = self.idler_wavelengths
-        signal_wavelengths = self.signal_wavelengths
         f_size = 12
-
+        # Schmidt coefficients
         fig2 = plt.figure()
         ax21 = fig2.add_subplot(211)
-        ax21.bar(np.arange(20), s_vals[0:20], align="center", alpha=0.75)
+        ax21.bar(np.arange(20), self.s_vals[0:20], align="center", alpha=0.75)
         ax21.grid(True)
         ax21.set_ylabel("Schmidt Coefficients", fontsize=f_size)
         tlt = f"Schmidt Decomposition of the JSA - Resulting purity: {round(self.Purity,2)}"
         ax21.set_title(tlt, fontsize=f_size)
 
-        # Marginal distributions
+        # Create subplot for fits and plots for idler and signal
         ax22 = fig2.add_subplot(212)
-        x1 = idler_wavelengths * 1e9
-        y1 = abs(np.trapz(JSI, idler_wavelengths)) / np.amax(abs(np.trapz(JSI, idler_wavelengths)))
-        ax22.plot(x1, y1, "bo", markersize=4)
 
-        # Define Gaussian function
-        def gaussian(x, amp, cen, wid, off):
-            return amp * np.exp(-(x - cen) ** 2 / wid) + off
+        # Fit and plot the idler data
+        x1 = self.signal_wavelengths * 1e9
+        y1 = abs(np.trapz(self.JSI, self.signal_wavelengths)) / np.amax(abs(np.trapz(self.JSI, self.signal_wavelengths)))
+        ax22.plot(x1, y1, "bo", markersize=4)
 
         # Use curve_fit to fit the Gaussian function to the data
         p0 = [1, np.mean(x1), 1, 0]  # Initial guesses for amp, cen, wid, off
-        popt1, _ = curve_fit(gaussian, x1, y1, p0=p0)
-        ax22.plot(x1, gaussian(x1, *popt1), linestyle="--", color="orange")
+        popt1, _ = curve_fit(self.gaussian, x1, y1, p0=p0)
+        ax22.plot(x1, self.gaussian(x1, *popt1), linestyle="--", color="orange")
+
 
         # Fit and plot the idler data
-        y2 = abs(np.trapz(JSI.T, idler_wavelengths)) / np.amax(abs(np.trapz(JSI.T, idler_wavelengths)))
-        ax22.plot(x1, y2, "r^", markersize=4)
+        x2 = self.idler_wavelengths * 1e9
+        y2 = abs(np.trapz(self.JSI.T, self.idler_wavelengths)) / np.amax(abs(np.trapz(self.JSI.T, self.idler_wavelengths)))
+        ax22.plot(x2, y2, "r^", markersize=4)
 
         # Fit the idler data using curve_fit
-        popt2, _ = curve_fit(gaussian, x1, y2, p0=p0)
-        ax22.plot(x1, gaussian(x1, *popt2), linestyle="--", color="green")
+        popt2, _ = curve_fit(self.gaussian, x2, y2, p0=p0)
+        ax22.plot(x2, self.gaussian(x2, *popt2), linestyle="--", color="green")
 
         # Formatting the plot
         ax22.grid(True)
-        ax22.set_xlim(left=np.amin(idler_wavelengths * 1e9), right=np.amax(idler_wavelengths * 1e9))
+        ax22.set_xlim(left=np.amin(self.idler_wavelengths * 1e9), right=np.amax(self.idler_wavelengths * 1e9))
         ax22.set_xlabel("wavelength (nm)")
         ax22.set_ylabel("normalized amplitude", fontsize=f_size)
         ax22.set_title("JSI Profiles", fontsize=f_size)
