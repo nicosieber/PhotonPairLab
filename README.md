@@ -2,6 +2,16 @@
 ## Description
 Object oriented implementation of the simulation of joint spectral amplitudes and other properties related to SPDC.
 
+## Disclaimer
+This project is a work in progress, and while I strive for accuracy, there may still be areas that need improvement or refinement. I encourage experts in the field to contribute by:
+
+* Adding new materials, including their Sellmeier coefficients, temperature corrections, and thermal expansion properties.
+* Reviewing the current implementation to ensure correctness from a physics perspective.
+* Suggesting improvements to existing features or providing feedback on better approaches.
+* Proposing or implementing new capabilities that could enhance the project's functionality.
+
+Your expertise and contributions would be greatly appreciated to make this project more robust and reliable!
+
 ## References for ...
 ... Sellmeier coefficients and temperature corrections
 1. F. Konig et al., APL, 84,1644, 2004
@@ -12,7 +22,7 @@ Object oriented implementation of the simulation of joint spectral amplitudes an
 
 ... thermal expansion:
 1. S. Emanueli & A. Arie, App. Opt, vol. 42, No. 33 (2003)
-2. ... Unfortunately I could not find other values / references so far
+2. ... Unfortunately I could not find other values / references for (KTP) so far
 
 ... implementation of the sub-coherence-length apodization algorithm
 1. Francesco Graffitti, Dmytro Kundys, Derryck T. Reid, Agata M. Brańczyk and Alessandro Fedrizzi, Quantum Sci. Technol. 2 (2017)035001 (https://doi.org/10.1088/2058-9565/aa78d4)
