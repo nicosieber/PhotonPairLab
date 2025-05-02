@@ -18,8 +18,8 @@ class SPDC_Simulation:
         parameters such as angular frequencies, group velocities, and bandwidth for the simulation.
         Attributes:
             DeltaK_0 (float): The initial phase mismatch value computed from the crystal and laser properties.
-            Pf0 (float): The center angular frequency of the pump wave.
-            Df0 (float): The center angular frequency of the down-converted signal and idler waves.
+            omega_pump (float): The center angular frequency of the pump wave.
+            omega_down (float): The center angular frequency of the down-converted signal and idler waves.
             K_pump (float): The group velocity of the pump wave.
             K_idler (float): The group velocity of the idler wave.
             K_signal (float): The group velocity of the signal wave.
@@ -34,38 +34,25 @@ class SPDC_Simulation:
         # Ensure that the poling pattern is generated
         if self.crystal.sarray is None:
             self.crystal.generate_poling(self.laser)
-        
-        # Extract necessary data from the crystal and laser
-        T = self.crystal.T
-        L = self.crystal.L
-        Lc = self.crystal.Lc
-        z = self.crystal.z
-        sarray = self.crystal.sarray
 
-        lambda_w = self.laser.lambda_w
-        lambda_2w = self.laser.lambda_2w
-        c = self.laser.c
-
-    
         # Use compute_phase_mismatch from the Crystal class
-        _, (N_pump, N_signal, N_idler), DeltaK_0 = self.crystal.compute_phase_mismatch(self.laser)
-        self.DeltaK_0 = DeltaK_0
+        _, (N_pump, N_signal, N_idler), self.DeltaK_0 = self.crystal.compute_phase_mismatch(self.laser)
 
         # Center angular frequencies
-        self.Pf0 = 2 * np.pi * c / lambda_2w
-        self.Df0 = self.Pf0 / 2
+        self.omega_pump = 2 * np.pi * self.laser.c / self.laser.lambda_2w
+        self.omega_down = self.omega_pump / 2
 
-        # Group velocities
-        self.K_pump = N_pump / c  # k' pump
-        self.K_idler = N_idler / c  # k' idler
-        self.K_signal = N_signal / c  # k' signal
+        # Inverse group velocities
+        self.K_pump = N_pump / self.laser.c  # k' pump
+        self.K_idler = N_idler / self.laser.c  # k' idler
+        self.K_signal = N_signal / self.laser.c  # k' signal
 
         # Bandwidth
-        self.bandwidth = (2 * np.pi * c) * self.laser.FWHM / (lambda_2w ** 2 * 2 * np.sqrt(np.log(2)))
+        self.bandwidth = (2 * np.pi * self.laser.c) * self.laser.FWHM / (self.laser.lambda_2w ** 2 * 2 * np.sqrt(np.log(2)))
 
         # xi_eff and z for simulation
-        self.xi_eff = np.flip(sarray.astype("float64"))
-        self.z = z
+        self.xi_eff = np.flip(self.crystal.sarray.astype("float64"))
+        self.z = self.crystal.z
 
     # Define the Gaussian function used for fitting
     def gaussian(self, x, amp, cen, wid, off):
@@ -113,51 +100,38 @@ class SPDC_Simulation:
 
     def run_simulation(self, steps=100, dev=5):
         """
-        Optimized SPDC simulation to compute the Joint Spectral Amplitude (JSA),
+        Vectorized SPDC simulation that uses numpy's broadcasting to compute the Joint Spectral Amplitude (JSA),
         pump profile, phase, intensity, and related parameters.
         """
-        lambda_w = self.laser.lambda_w
-        c = self.laser.c
-        z = self.z
-        xi_eff = self.xi_eff
-        DeltaK_0 = self.DeltaK_0
-        K_pump = self.K_pump
-        K_idler = self.K_idler
-        K_signal = self.K_signal
-        Df0 = self.Df0
-        bandwidth = self.bandwidth
-        Pf0 = self.Pf0
-    
+
         # Generate signal and idler wavelength arrays
-        idler_wavelengths = np.linspace(lambda_w - dev * 1e-9, lambda_w + dev * 1e-9, steps)
-        signal_wavelengths = np.linspace(lambda_w - dev * 1e-9, lambda_w + dev * 1e-9, steps)
+        idler_wavelengths = np.linspace(self.laser.lambda_w - dev * 1e-9, self.laser.lambda_w + dev * 1e-9, steps)
+        signal_wavelengths = np.linspace(self.laser.lambda_w - dev * 1e-9, self.laser.lambda_w + dev * 1e-9, steps)
     
         # Precompute constants
-        fs = 2 * np.pi * c / signal_wavelengths[:, None]  # Signal frequencies (column vector)
-        fi = 2 * np.pi * c / idler_wavelengths[None, :]  # Idler frequencies (row vector)
-        DeltaK_1 = (K_pump - K_signal) * (fs - Df0) + (K_pump - K_idler) * (fi - Df0)
-        DeltaK = DeltaK_0 + DeltaK_1
-        S = np.exp(-((fi + fs - Pf0) ** 2) / (2 * bandwidth ** 2))  # Gaussian pump spectrum
+        fs = 2 * np.pi * self.laser.c / signal_wavelengths[:, None]  # Signal frequencies (column vector)
+        fi = 2 * np.pi * self.laser.c / idler_wavelengths[None, :]  # Idler frequencies (row vector)
+        DeltaK_1 = (self.K_pump - self.K_signal) * (fs - self.omega_down) + (self.K_pump - self.K_idler) * (fi - self.omega_down)
+        DeltaK = self.DeltaK_0 + DeltaK_1
+        S = np.exp(-((fi + fs - self.omega_pump) ** 2) / (2 * self.bandwidth ** 2))  # Gaussian pump spectrum
     
         # Compute Pump, Phase, JSI, and JSA using vectorized operations
         Pump = S ** 2
-        phase = self.compute_phase(z, xi_eff, DeltaK)
+        phase = self.compute_phase(self.z, self.xi_eff, DeltaK)
         # Compute phase matching function
         Phase = np.abs(phase) ** 2
         Amp = S * phase
-        JSI = np.abs(Amp) ** 2
-        JSA = np.abs(Amp)
     
         # Store results
         self.signal_wavelengths = signal_wavelengths
         self.idler_wavelengths = idler_wavelengths
         self.Pump = Pump
         self.Phase = Phase
-        self.JSI = JSI
-        self.JSA = JSA
+        self.JSI = np.abs(Amp) ** 2
+        self.JSA = np.abs(Amp)
     
         # Schmidt decomposition
-        u, s_vals, vh = np.linalg.svd(JSA / np.amax(JSA), full_matrices=True)
+        u, s_vals, vh = np.linalg.svd(self.JSA / np.amax(self.JSA), full_matrices=True)
         s_vals = s_vals / np.sqrt(np.sum(s_vals ** 2))  # Normalize
         self.Purity = np.sum(s_vals ** 4)
         self.K = 1 / self.Purity
