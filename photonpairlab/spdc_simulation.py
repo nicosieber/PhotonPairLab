@@ -253,6 +253,33 @@ class SPDC_Simulation:
         plt.gcf().set_facecolor((0.960, 0.960, 0.960))
         plt.show()
 
+    def get_signal_idler_peaks(self):
+        """
+        Computes the signal and idler peaks from the JSI (Joint Spectral Intensity) data.
+        This method finds the maximum values in the JSI data and returns their corresponding
+        signal and idler wavelengths.
+
+        Returns:
+            tuple: A tuple containing two elements:
+                - signal_peak (float): The wavelength of the signal peak.
+                - idler_peak (float): The wavelength of the idler peak.
+        """
+        # Fit the signal data
+        x1 = self.signal_wavelengths * 1e9
+        y1 = abs(np.trapz(self.JSI, self.signal_wavelengths)) / np.amax(abs(np.trapz(self.JSI, self.signal_wavelengths)))
+        # Use curve_fit to fit the Gaussian function to the data
+        p0 = [1, np.mean(x1), 1, 0]  # Initial guesses for amp, cen, wid, off
+        popt1, _ = curve_fit(self.gaussian, x1, y1, p0=p0)
+
+        # Fit the idler data
+        x2 = self.idler_wavelengths * 1e9
+        y2 = abs(np.trapz(self.JSI.T, self.idler_wavelengths)) / np.amax(abs(np.trapz(self.JSI.T, self.idler_wavelengths)))
+        # Fit the idler data using curve_fit
+        p0 = [1, np.mean(x2), 1, 0] # Initial guesses for amp, cen, wid, off
+        popt2, _ = curve_fit(self.gaussian, x2, y2, p0=p0)
+
+        return popt1[1], popt2[1] # Return the center wavelengths of the fitted Gaussian functions
+    
     def plot_schmidt_coefficients(self):
         f_size = 12
         # Schmidt coefficients
@@ -267,7 +294,7 @@ class SPDC_Simulation:
         # Create subplot for fits and plots for idler and signal
         ax22 = fig2.add_subplot(212)
 
-        # Fit and plot the idler data
+        # Fit and plot the signal data
         x1 = self.signal_wavelengths * 1e9
         y1 = abs(np.trapz(self.JSI, self.signal_wavelengths)) / np.amax(abs(np.trapz(self.JSI, self.signal_wavelengths)))
         ax22.plot(x1, y1, "bo", markersize=4)
