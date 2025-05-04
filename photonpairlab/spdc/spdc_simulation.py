@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 from scipy.optimize import curve_fit
 
+from photonpairlab.spdc.utils import gaussian, linear
+
 class SPDC_Simulation:
     def __init__(self, crystal, laser):
         self.crystal = crystal
@@ -54,37 +56,6 @@ class SPDC_Simulation:
         self.xi_eff = np.flip(self.crystal.sarray.astype("float64"))
         self.z = self.crystal.z
     
-    # Define the Gaussian function used for fitting
-    def gaussian(self, x, amp, cen, wid, off):
-        """
-        Computes a Gaussian function.
-
-        Parameters:
-            x (float or ndarray): The input value(s) where the Gaussian function is evaluated.
-            amp (float): The amplitude of the Gaussian peak.
-            cen (float): The center position of the Gaussian peak.
-            wid (float): The width (variance) of the Gaussian function.
-            off (float): The offset added to the Gaussian function.
-
-        Returns:
-            float or ndarray: The computed value(s) of the Gaussian function at the given input.
-        """
-        return amp * np.exp(-(x - cen) ** 2 / wid) + off
-    
-    # Define linear function for fitting
-    def linear(self, x, m, b):
-        """
-        Computes a linear function.
-
-        Parameters:
-            x (float or ndarray): The input value(s) where the linear function is evaluated.
-            m (float): The slope of the linear function.
-            b (float): The y-intercept of the linear function.
-
-        Returns:
-            float or ndarray: The computed value(s) of the linear function at the given input.
-        """
-        return m * x + b
     
     def compute_phase_integral(self,z, xi_eff, DeltaK):
         """
@@ -288,14 +259,14 @@ class SPDC_Simulation:
         signal_itensities = abs(np.trapz(self.JSI, self.signal_wavelengths)) / np.amax(abs(np.trapz(self.JSI, self.signal_wavelengths)))
         # Use curve_fit to fit the Gaussian function to the data
         p0 = [1, np.mean(signal_wavelengths), 1, 0]  # Initial guesses for amp, cen, wid, off
-        popt1, _ = curve_fit(self.gaussian, signal_wavelengths, signal_itensities, p0=p0)
+        popt1, _ = curve_fit(gaussian, signal_wavelengths, signal_itensities, p0=p0)
 
         # Fit the idler data
         idler_wavelengths = self.idler_wavelengths * 1e9
         idler_intensities = abs(np.trapz(self.JSI.T, self.idler_wavelengths)) / np.amax(abs(np.trapz(self.JSI.T, self.idler_wavelengths)))
         # Fit the idler data using curve_fit
         p0 = [1, np.mean(idler_wavelengths), 1, 0] # Initial guesses for amp, cen, wid, off
-        popt2, _ = curve_fit(self.gaussian, idler_wavelengths, idler_intensities, p0=p0)
+        popt2, _ = curve_fit(gaussian, idler_wavelengths, idler_intensities, p0=p0)
 
         return popt1, popt2, (signal_wavelengths, signal_itensities), (idler_wavelengths, idler_intensities)
     
@@ -317,11 +288,11 @@ class SPDC_Simulation:
         # Fit and plot the signal data
         ax2.plot(signal_wavelenghts, signal_intensities, "bo", markersize=4)
         # Use curve_fit to fit the Gaussian function to the data
-        ax2.plot(signal_wavelenghts, self.gaussian(signal_wavelenghts, *popt1), linestyle="--", color="orange")
+        ax2.plot(signal_wavelenghts, gaussian(signal_wavelenghts, *popt1), linestyle="--", color="orange")
         # Fit and plot the idler data
         ax2.plot(idler_wavelengths, idler_intensities, "r^", markersize=4)
         # Fit the idler data using curve_fit
-        ax2.plot(idler_wavelengths, self.gaussian(idler_wavelengths, *popt2), linestyle="--", color="green")
+        ax2.plot(idler_wavelengths, gaussian(idler_wavelengths, *popt2), linestyle="--", color="green")
 
         # Formatting the plot
         ax2.grid(True)
