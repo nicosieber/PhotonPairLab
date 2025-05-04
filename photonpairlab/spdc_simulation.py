@@ -71,6 +71,21 @@ class SPDC_Simulation:
         """
         return amp * np.exp(-(x - cen) ** 2 / wid) + off
     
+    # Define linear function for fitting
+    def linear(self, x, m, b):
+        """
+        Computes a linear function.
+
+        Parameters:
+            x (float or ndarray): The input value(s) where the linear function is evaluated.
+            m (float): The slope of the linear function.
+            b (float): The y-intercept of the linear function.
+
+        Returns:
+            float or ndarray: The computed value(s) of the linear function at the given input.
+        """
+        return m * x + b
+    
     def compute_phase_integral(self,z, xi_eff, DeltaK):
         """
         Compute the phase integral for a given set of parameters.
@@ -112,7 +127,6 @@ class SPDC_Simulation:
         Vectorized SPDC simulation that uses numpy's broadcasting to compute the Joint Spectral Amplitude (JSA),
         pump profile, phase, intensity, and related parameters.
         """
-
         # Generate signal and idler wavelength arrays
         self.idler_wavelengths = np.linspace(self.laser.lambda_w - dev * 1e-9, self.laser.lambda_w + dev * 1e-9, steps)
         self.signal_wavelengths = np.linspace(self.laser.lambda_w - dev * 1e-9, self.laser.lambda_w + dev * 1e-9, steps)
@@ -167,7 +181,9 @@ class SPDC_Simulation:
         axs.xaxis.set_major_locator(plt.MaxNLocator(number_ticklabels))
         axs.yaxis.set_major_locator(plt.MaxNLocator(number_ticklabels))
         plt.gcf().set_facecolor((0.960, 0.960, 0.960))
-        plt.show()
+        
+        return fig, axs
+
 
     def plot_phase(self):
         cmap = cm.viridis
@@ -195,7 +211,8 @@ class SPDC_Simulation:
         axs.xaxis.set_major_locator(plt.MaxNLocator(number_ticklabels))
         axs.yaxis.set_major_locator(plt.MaxNLocator(number_ticklabels))
         plt.gcf().set_facecolor((0.960, 0.960, 0.960))
-        plt.show()
+        
+        return fig, axs
 
     def plot_jsi(self):
         cmap = cm.viridis
@@ -223,7 +240,8 @@ class SPDC_Simulation:
         axs.xaxis.set_major_locator(plt.MaxNLocator(number_ticklabels))
         axs.yaxis.set_major_locator(plt.MaxNLocator(number_ticklabels))
         plt.gcf().set_facecolor((0.960, 0.960, 0.960))
-        plt.show()
+        
+        return fig, axs
 
     def plot_jsa(self):
         cmap = cm.viridis
@@ -251,9 +269,10 @@ class SPDC_Simulation:
         axs.xaxis.set_major_locator(plt.MaxNLocator(number_ticklabels))
         axs.yaxis.set_major_locator(plt.MaxNLocator(number_ticklabels))
         plt.gcf().set_facecolor((0.960, 0.960, 0.960))
-        plt.show()
+        
+        return fig, axs
 
-    def get_signal_idler_peaks(self):
+    def get_signal_idler_fits(self):
         """
         Computes the signal and idler peaks from the JSI (Joint Spectral Intensity) data.
         This method finds the maximum values in the JSI data and returns their corresponding
@@ -265,82 +284,52 @@ class SPDC_Simulation:
                 - idler_peak (float): The wavelength of the idler peak.
         """
         # Fit the signal data
-        x1 = self.signal_wavelengths * 1e9
-        y1 = abs(np.trapz(self.JSI, self.signal_wavelengths)) / np.amax(abs(np.trapz(self.JSI, self.signal_wavelengths)))
+        signal_wavelengths = self.signal_wavelengths * 1e9
+        signal_itensities = abs(np.trapz(self.JSI, self.signal_wavelengths)) / np.amax(abs(np.trapz(self.JSI, self.signal_wavelengths)))
         # Use curve_fit to fit the Gaussian function to the data
-        p0 = [1, np.mean(x1), 1, 0]  # Initial guesses for amp, cen, wid, off
-        popt1, _ = curve_fit(self.gaussian, x1, y1, p0=p0)
+        p0 = [1, np.mean(signal_wavelengths), 1, 0]  # Initial guesses for amp, cen, wid, off
+        popt1, _ = curve_fit(self.gaussian, signal_wavelengths, signal_itensities, p0=p0)
 
         # Fit the idler data
-        x2 = self.idler_wavelengths * 1e9
-        y2 = abs(np.trapz(self.JSI.T, self.idler_wavelengths)) / np.amax(abs(np.trapz(self.JSI.T, self.idler_wavelengths)))
+        idler_wavelengths = self.idler_wavelengths * 1e9
+        idler_intensities = abs(np.trapz(self.JSI.T, self.idler_wavelengths)) / np.amax(abs(np.trapz(self.JSI.T, self.idler_wavelengths)))
         # Fit the idler data using curve_fit
-        p0 = [1, np.mean(x2), 1, 0] # Initial guesses for amp, cen, wid, off
-        popt2, _ = curve_fit(self.gaussian, x2, y2, p0=p0)
+        p0 = [1, np.mean(idler_wavelengths), 1, 0] # Initial guesses for amp, cen, wid, off
+        popt2, _ = curve_fit(self.gaussian, idler_wavelengths, idler_intensities, p0=p0)
 
-        return popt1[1], popt2[1] # Return the center wavelengths of the fitted Gaussian functions
+        return popt1, popt2, (signal_wavelengths, signal_itensities), (idler_wavelengths, idler_intensities)
     
-    def plot_schmidt_coefficients(self):
-        f_size = 12
+    def plot_schmidt_coefficients(self, font_size=12):
         # Schmidt coefficients
-        fig2 = plt.figure()
-        ax21 = fig2.add_subplot(211)
-        ax21.bar(np.arange(20), self.s_vals[0:20], align="center", alpha=0.75)
-        ax21.grid(True)
-        ax21.set_ylabel("Schmidt Coefficients", fontsize=f_size)
+        fig = plt.figure()
+        ax1 = fig.add_subplot(211)
+        ax1.bar(np.arange(20), self.s_vals[0:20], align="center", alpha=0.75)
+        ax1.grid(True)
+        ax1.set_ylabel("Schmidt Coefficients", fontsize=font_size)
         tlt = f"Schmidt Decomposition of the JSA - Resulting purity: {round(self.Purity,2)}"
-        ax21.set_title(tlt, fontsize=f_size)
+        ax1.set_title(tlt, fontsize=font_size)
 
         # Create subplot for fits and plots for idler and signal
-        ax22 = fig2.add_subplot(212)
+        ax2 = fig.add_subplot(212)
+        # Get the signal and idler fits
+        popt1, popt2, (signal_wavelenghts, signal_intensities), (idler_wavelengths, idler_intensities) = self.get_signal_idler_fits()
 
         # Fit and plot the signal data
-        x1 = self.signal_wavelengths * 1e9
-        y1 = abs(np.trapz(self.JSI, self.signal_wavelengths)) / np.amax(abs(np.trapz(self.JSI, self.signal_wavelengths)))
-        ax22.plot(x1, y1, "bo", markersize=4)
-
+        ax2.plot(signal_wavelenghts, signal_intensities, "bo", markersize=4)
         # Use curve_fit to fit the Gaussian function to the data
-        p0 = [1, np.mean(x1), 1, 0]  # Initial guesses for amp, cen, wid, off
-        popt1, _ = curve_fit(self.gaussian, x1, y1, p0=p0)
-        ax22.plot(x1, self.gaussian(x1, *popt1), linestyle="--", color="orange")
-
-
+        ax2.plot(signal_wavelenghts, self.gaussian(signal_wavelenghts, *popt1), linestyle="--", color="orange")
         # Fit and plot the idler data
-        x2 = self.idler_wavelengths * 1e9
-        y2 = abs(np.trapz(self.JSI.T, self.idler_wavelengths)) / np.amax(abs(np.trapz(self.JSI.T, self.idler_wavelengths)))
-        ax22.plot(x2, y2, "r^", markersize=4)
-
+        ax2.plot(idler_wavelengths, idler_intensities, "r^", markersize=4)
         # Fit the idler data using curve_fit
-        popt2, _ = curve_fit(self.gaussian, x2, y2, p0=p0)
-        ax22.plot(x2, self.gaussian(x2, *popt2), linestyle="--", color="green")
+        ax2.plot(idler_wavelengths, self.gaussian(idler_wavelengths, *popt2), linestyle="--", color="green")
 
         # Formatting the plot
-        ax22.grid(True)
-        ax22.set_xlim(left=np.amin(self.idler_wavelengths * 1e9), right=np.amax(self.idler_wavelengths * 1e9))
-        ax22.set_xlabel("wavelength (nm)")
-        ax22.set_ylabel("normalized amplitude", fontsize=f_size)
-        ax22.set_title("JSI Profiles", fontsize=f_size)
-        ax22.legend(["signal", "fit: signal", "idler", "fit: idler"])
+        ax2.grid(True)
+        ax2.set_xlim(left=np.amin(signal_wavelenghts), right=np.amax(signal_wavelenghts))
+        ax2.set_xlabel("wavelength (nm)")
+        ax2.set_ylabel("normalized amplitude", fontsize=font_size)
+        ax2.set_title("JSI Profiles", fontsize=font_size)
+        ax2.legend(["signal", "fit: signal", "idler", "fit: idler"])
         plt.tight_layout(pad=1.2, w_pad=2, h_pad=2.0)
-        plt.show()
-
-    def plot_poling(self):
-        z = self.z
-        sarray = self.crystal.sarray
-
-        plt.plot(z * 1000, sarray, label="poling")
-        plt.xlabel("Position within the crystal (mm)")
-        plt.ylabel("Poling value")
-        plt.title("Poling Profile")
-        plt.legend(loc="lower right")
-        plt.grid(True)
-        plt.tight_layout()
-        plt.show()
-
-    def plot_results(self):
-        self.plot_pump()
-        self.plot_phase()
-        self.plot_jsi()
-        self.plot_jsa()
-        self.plot_schmidt_coefficients()
-        #self.plot_poling()
+        
+        return fig, (ax1, ax2)
