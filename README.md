@@ -1,6 +1,24 @@
 # PhotonPairLab
 ## Description
-Object oriented implementation of the simulation of joint spectral amplitudes and other properties related to SPDC.
+**PhotonPairLab** is a Python-based simulation toolkit for modeling the generation of photon pairs via spontaneous parametric down-conversion (SPDC) in nonlinear crystals. This project is designed with a clean, modular, and object-oriented architecture, making it extensible for further development or integration into larger quantum optics simulations.
+
+## Features
+
+* Object-oriented architecture with clean separation of concerns.
+* Models type-0, type-I and type-II SPDC processes.
+* Visualization tools for key physical quantities, including joint spectral properties, enabling intuitive analysis and interpretation of SPDC processes.
+* Easily extendable to support different crystal types and pump configurations.
+
+## Architecture Overview
+
+The codebase is structured using well-defined classes:
+
+* `materials`: Provides models for nonlinear optical materials, including their Sellmeier coefficients, temperature corrections, and thermal expansion properties.
+* `crystal`: Encapsulates physical properties like poling period, temperature, and dispersion. 
+* `laser`: Models the pump laser, including its wavelength and bandwidth.
+* `spdc`: Handles the simulation, analysis, and visualization of SPDC processes, including computing the JSA and related quantities.
+
+This separation makes the code easy to read, maintain, and expand.
 
 ## Disclaimer
 This project is a work in progress, and while I strive for accuracy, there may still be areas that need improvement or refinement. I encourage experts in the field to contribute by:
