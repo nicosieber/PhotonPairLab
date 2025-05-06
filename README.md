@@ -21,7 +21,7 @@ The codebase is structured using well-defined classes:
 This separation makes the code easy to read, maintain, and expand.
 
 ## How to use
-The demo notebook can be found at [Open demo notebook](./demo.ipynb).
+For a demonstration on how to use **PhotonPairLab** have a look at the [demo notebook](./demo.ipynb).
 
 ## Disclaimer
 This project is a work in progress, and while I strive for accuracy, there may still be areas that need improvement or refinement. I encourage experts in the field to contribute by:
