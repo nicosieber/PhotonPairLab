@@ -51,6 +51,6 @@ class SPDC_Analyzer:
 
         # Return fit parameters and data
         return signal_fit, idler_fit, (signal_wavelengths, signal_intensities), (idler_wavelengths, idler_intensities)
-    
+
     def compute_optimal_temp(self):
         pass
