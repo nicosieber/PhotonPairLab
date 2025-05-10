@@ -1,4 +1,5 @@
-from . import test_crystal
-from . import test_laser
-from . import tests_materials
-from . import tests_spdc
+from .test_crystal import TestCrystal
+#from .test_laser import TestLaser
+#from .tests_materials import TestMaterials
+#from .tests_spdc import TestSPDC
+
