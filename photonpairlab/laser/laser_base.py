@@ -15,7 +15,7 @@ class LaserBase:
         self.lambda_w = 2 * wavelength  # Central wavelength of down-converted photons (m)
         self.c = 299792458  # Speed of light in meters per second (m/s)
 
-    def bandwidth_wavelength_to_pulse_width(self, bandwidth, lambda_0):
+    def bandwidth_wavelength_to_pulse_width(self, bandwidth):
         """
         Convert bandwidth to pulse width.
 
@@ -26,10 +26,10 @@ class LaserBase:
         Returns:
             float: Pulse width in seconds.
         """
-        pulse_width = 2 * np.log(2) / np.pi * lambda_0 ** 2 / (bandwidth * self.c)
+        pulse_width = 2 * np.log(2) / np.pi * self.lambda_2w ** 2 / (bandwidth * self.c)
         return pulse_width
 
-    def pulse_duration_to_bandwidth_wavelength(self, pulse_width, lambda_0):
+    def pulse_duration_to_bandwidth_wavelength(self, pulse_width):
         """
         Convert pulse width to bandwidth.
 
@@ -40,7 +40,7 @@ class LaserBase:
         Returns:
             float: Bandwidth in meters.
         """
-        bandwidth = 2 * np.log(2) / np.pi * lambda_0 ** 2 / (pulse_width * self.c)
+        bandwidth = 2 * np.log(2) / np.pi * self.lambda_2w ** 2 / (pulse_width * self.c)
         return bandwidth
     
     def bandwidth_wavelength_to_angular_bandwidth(self, bandwidth_wavelength):
@@ -66,5 +66,4 @@ class LaserBase:
         """
         bandwidth_wavelength = (self.lambda_2w ** 2 * 2 * np.sqrt(np.log(2))) / (2 * np.pi * self.c) * angular_bandwidth
         return bandwidth_wavelength
-    
     

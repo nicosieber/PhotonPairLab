@@ -15,6 +15,6 @@ class PulsedLaser(LaserBase):
         super().__init__(wavelength)
 
         self.pulse_duration = pulse_duration  # Pulse duration (s)
-        self.bandwidth_wavelength = self.pulse_duration_to_bandwidth_wavelength(self.pulse_duration, self.lambda_2w)  # Bandwidth (m)
-        
+        self.bandwidth_wavelength = self.pulse_duration_to_bandwidth_wavelength(self.pulse_duration)  # Bandwidth (m)
+
         self.repetition_rate = repetition_rate  # Repetition rate (Hz)
