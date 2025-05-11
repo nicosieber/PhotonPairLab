@@ -22,12 +22,12 @@ class SPDC_Simulation:
             K_pump (float): The group velocity of the pump wave.
             K_idler (float): The group velocity of the idler wave.
             K_signal (float): The group velocity of the signal wave.
-            bandwidth (float): The bandwidth of the laser in angular frequency.
+            angular_bandwidth (float): The bandwidth of the laser in angular frequency.
             xi_eff (numpy.ndarray): The effective poling pattern of the crystal, flipped and converted to float64.
             z (numpy.ndarray): The spatial positions along the crystal.
         Notes:
             - This method relies on the `generate_poling` and `compute_phase_mismatch` methods of the `Crystal` class.
-            - The laser's FWHM (Full Width at Half Maximum) is used to calculate the bandwidth.
+            - The laser's FWHM (Full Width at Half Maximum in m) is used to calculate the bandwidth.
         """
         
         # Ensure that the poling pattern is generated
@@ -47,8 +47,7 @@ class SPDC_Simulation:
         self.K_signal = N_signal / self.laser.c  # k' signal
 
         # Bandwidth
-        self.bandwidth = (2 * np.pi * self.laser.c) * self.laser.FWHM / (self.laser.lambda_2w ** 2 * 2 * np.sqrt(np.log(2)))
-
+        self.angular_bandwidth = self.laser.bandwidth_wavelength_to_angular_bandwidth(self.laser.bandwidth_wavelength)
         # xi_eff and z for simulation
         self.xi_eff = np.flip(self.crystal.sarray.astype("float64"))
         self.z = self.crystal.z
@@ -97,7 +96,7 @@ class SPDC_Simulation:
         DeltaK = self.DeltaK_0 + DeltaK_1
         
         # Compute Pump, Phase, JSI, and JSA using vectorized operations
-        S = np.exp(-((fi + fs - self.omega_pump) ** 2) / (2 * self.bandwidth ** 2))  # Gaussian pump spectrum
+        S = np.exp(-((fi + fs - self.omega_pump) ** 2) / (2 * self.angular_bandwidth ** 2))  # Gaussian pump spectrum
         phase = self.compute_phase_integral(self.z, self.xi_eff, DeltaK)
         Amp = S * phase
 

@@ -13,5 +13,6 @@ class PulsedLaser(LaserBase):
             pulse_duration (float): Pulse duration in seconds (s).
         """
         super().__init__(wavelength)
+        
         self.pulse_duration = pulse_duration  # Pulse duration (s)
-        self.FWHM = self.pulse_width_to_bandwidth(self.pulse_duration, self.lambda_2w)  # Bandwidth (m)
+        self.bandwidth_wavelength = self.pulse_duration_to_bandwidth_wavelength(self.pulse_duration, self.lambda_2w)  # Bandwidth (m)
