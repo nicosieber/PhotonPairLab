@@ -1,6 +1,6 @@
-from photonpairlab.laser.laser_base import LaserBase
+from photonpairlab.laser.base_laser import BaseLaser
 
-class PulsedLaser(LaserBase):
+class PulsedLaser(BaseLaser):
     """
     Represents a pulsed laser.
     """

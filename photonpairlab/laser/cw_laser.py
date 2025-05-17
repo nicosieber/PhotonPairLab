@@ -1,6 +1,6 @@
-from photonpairlab.laser.laser_base import LaserBase
+from photonpairlab.laser.base_laser import BaseLaser
 
-class CWLaser(LaserBase):
+class CWLaser(BaseLaser):
     """
     Represents a continuous-wave (CW) laser.
     """

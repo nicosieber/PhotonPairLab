@@ -1,6 +1,6 @@
 import numpy as np
 
-class LaserBase:
+class BaseLaser:
     """
     Base class for lasers. Contains common attributes and methods.
     """
