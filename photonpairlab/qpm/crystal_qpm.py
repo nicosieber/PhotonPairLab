@@ -1,8 +1,8 @@
 import numpy as np
 
-from .materials import BaseMaterial
+from .materials_qpm import BaseMaterial
 
-class Crystal:
+class CrystalQPM:
     def __init__(self, Lc: float, Lo: float, T: float, w: float, material: BaseMaterial, spdc: str = "type-II"):
         """
         Initializes a Crystal object with its physical and material properties.
