@@ -16,7 +16,10 @@ The codebase is structured using well-defined classes:
 * `qpm`: Handles quasi-phase matching (QPM) processes. This module includes:
   - `materials_qpm`: Provides models for nonlinear optical materials used in QPM, including their Sellmeier coefficients, temperature corrections, and thermal expansion properties.
   - `crystal_qpm`: Encapsulates physical properties of QPM crystals, such as poling period, temperature, and dispersion, and provides methods for generating poling patterns.
-* `laser`: Models the pump laser, including its wavelength and bandwidth.
+* `laser`: Models the pump laser, supporting both continuous-wave (CW) and pulsed lasers. This module includes:
+  - `base_laser`: A base class containing shared functionality, such as wavelength and utility methods for bandwidth and pulse width conversions.
+  - `pulsed_laser`: Represents pulsed lasers, allowing for the calculation of bandwidth from pulse duration and vice versa.
+  - `cw_laser`: Represents continuous-wave lasers, where the bandwidth is directly specified.
 * `spdc`: Handles the simulation, analysis, and visualization of SPDC processes, including computing the JSA and related quantities.
 
 This separation makes the code easy to read, maintain, and expand.
