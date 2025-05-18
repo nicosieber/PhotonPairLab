@@ -13,8 +13,9 @@
 
 The codebase is structured using well-defined classes:
 
-* `materials`: Provides models for nonlinear optical materials, including their Sellmeier coefficients, temperature corrections, and thermal expansion properties.
-* `crystal`: Encapsulates physical properties like poling period, temperature, and dispersion. 
+* `qpm`: Handles quasi-phase matching (QPM) processes. This module includes:
+  - `materials_qpm`: Provides models for nonlinear optical materials used in QPM, including their Sellmeier coefficients, temperature corrections, and thermal expansion properties.
+  - `crystal_qpm`: Encapsulates physical properties of QPM crystals, such as poling period, temperature, and dispersion, and provides methods for generating poling patterns.
 * `laser`: Models the pump laser, including its wavelength and bandwidth.
 * `spdc`: Handles the simulation, analysis, and visualization of SPDC processes, including computing the JSA and related quantities.
 
