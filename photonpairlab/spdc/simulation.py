@@ -30,13 +30,9 @@ class SPDC_Simulation:
             - The laser's FWHM (Full Width at Half Maximum in m) is used to calculate the bandwidth.
         """
         
-        # Ensure that the poling pattern is generated
-        if self.crystal.sarray is None:
-            self.crystal.generate_poling(self.laser)
-
         # Use compute_phase_mismatch from the Crystal class
         _, (N_pump, N_signal, N_idler), self.DeltaK_0 = self.crystal.compute_phase_mismatch(self.laser)
-
+        
         # Center angular frequencies
         self.omega_pump = 2 * np.pi * self.laser.c / self.laser.lambda_2w
         self.omega_down = self.omega_pump / 2
