@@ -4,11 +4,25 @@ from scipy.misc import derivative
 class BaseMaterialAPM:
     """
     Base class for materials. Defines the interface for refractive index and group index calculations.
-    """  
+    """
+    def is_biaxial(self):
+        """
+        Returns True if the crystal is biaxial, False if uniaxial.
+        Subclasses must override this.
+        """
+        raise NotImplementedError("This method should be implemented by subclasses.")
+
+
     def refractive_index(self, wavelength, axis, temperature=None):
         """
         Calculate the refractive index for a given wavelength, axis and temperature.
         Must be implemented by subclasses.
+        """
+        raise NotImplementedError("This method should be implemented by subclasses.")
+
+    def effective_refractive_index(self, wavelength, theta_deg, phi_deg=0):
+        """
+        Compute n_eff(λ, θ, φ). Default: unimplemented.
         """
         raise NotImplementedError("This method should be implemented by subclasses.")
 

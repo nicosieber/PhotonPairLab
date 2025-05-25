@@ -32,7 +32,7 @@ class CrystalAPM:
     def get_polarizations(self):
         """
         Determine the polarization states based on the SPDC type.
-
+        
         Returns:
             tuple: (pol_p, pol_s, pol_i) for pump, signal, and idler polarizations.
         """
@@ -47,41 +47,16 @@ class CrystalAPM:
         else:
             raise ValueError("Invalid SPDC type.")
 
-
     def get_refractive_index(self, wavelength, polarization, angle):
-        """
-        Get the refractive index for a given wavelength, polarization, and angle.
-
-        Args:
-            wavelength (float): Wavelength in micrometers.
-            polarization (str): Polarization ('o' or 'e').
-            angle (float): Angle in degrees.
-
-        Returns:
-            float: Refractive index.
-        """
         if polarization == "o":
-            return self.refractive_index(wavelength, axis="o")
+            axis = self.material.map_polarization_axis("o")
+            return self.refractive_index(wavelength, axis=axis)
         elif polarization == "e":
-            return self.effective_refractive_index(wavelength, angle)
+            return self.material.effective_refractive_index(wavelength, angle)
         else:
             raise ValueError("Polarization must be 'o' or 'e'.")
 
-    def effective_refractive_index(self, wavelength, angle):
-        """
-        Calculate the effective extraordinary refractive index at a given angle.
 
-        Args:
-            lambda_um (float): Wavelength in micrometers.
-            theta_deg (float): Angle in degrees.
-        Returns:
-            float: Effective extraordinary refractive index.
-        """
-        theta_rad = np.radians(angle)
-        no = self.refractive_index(wavelength, axis="o")
-        ne = self.refractive_index(wavelength, axis="e")
-        return 1 / np.sqrt((np.cos(theta_rad)**2 / ne**2) + (np.sin(theta_rad)**2 / no**2))
-    
     def find_phase_matching_angle(self, laser=CWLaser(405e-9,bandwidth_wavelength=4.3e-9), wavelength_signal=810e-9, wavelength_idler=810e-9):
         """
         result = minimize_scalar(
@@ -91,8 +66,9 @@ class CrystalAPM:
         """
         result = minimize_scalar(
             lambda angle: abs(self.delta_k(angle, laser, wavelength_signal, wavelength_idler)),
-            bounds=(0, 90),
-            method='bounded'
+            bounds=(-180, 180),
+            method='bounded',
+            #options={'xatol': 1e-5}  # Set the absolute tolerance for the solution
         )
         phase_matching_angle = float(result.x)
 
@@ -146,7 +122,7 @@ class CrystalAPM:
         # If angle is not given, calculate phase matching angle
         if angle_pm is None:
             angle_pm = self.find_phase_matching_angle(laser, wavelength_signal, wavelength_idler)
-
+        print(f"Phase matching angle: {90-angle_pm}°")
         # Use the delta_k method to calculate Δk
         return self.delta_k(angle_pm, laser, wavelength_signal, wavelength_idler)
 

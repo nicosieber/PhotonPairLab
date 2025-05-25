@@ -16,7 +16,23 @@ class BBO(BaseMaterialAPM):
                 "o": {"A": 2.7359, "B": 0.01878, "C": 0.01822, "D": 0.01354},
                 "e": {"A": 2.3753, "B": 0.01224, "C": 0.01667, "D": 0.01516},
             },
+            "biaxial": False,
         }
+
+    def is_biaxial(self):
+        """
+        Check if the crystal is biaxial.
+        Returns:
+            bool: True if the crystal is biaxial, False if uniaxial.
+        """
+        try:
+            return self.material["biaxial"]
+        except KeyError:
+            raise ValueError("Biaxial property not found in material data.")
+        
+    def map_polarization_axis(self, polarization_label):
+        return polarization_label  # 'o' and 'e' are native for uniaxial
+
 
     def get_sellmeier_coefficients(self, axis):
         """
@@ -42,4 +58,12 @@ class BBO(BaseMaterialAPM):
         l2 = lambda_um**2
         return np.sqrt(
             coeffs["A"] + coeffs["B"] / (l2 - coeffs["C"]) - coeffs["D"] * l2
+        )
+    
+    def effective_refractive_index(self, lambda_um, theta_deg, phi_deg=0):
+        no = self.refractive_index(lambda_um, axis="o")
+        ne = self.refractive_index(lambda_um, axis="e")
+        theta = np.radians(theta_deg)
+        return 1 / np.sqrt(
+            (np.cos(theta)**2 / ne**2) + (np.sin(theta)**2 / no**2)
         )
