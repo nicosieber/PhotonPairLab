@@ -35,6 +35,7 @@ class KTP1(BaseMaterial):
             "thermal_expansion": {
                 "z": {"alpha": 6.7e-6, "beta": 11e-9},
             },
+            "biaxial": True,
         }
         
     def get_sellmeier_coefficients(self, axis):

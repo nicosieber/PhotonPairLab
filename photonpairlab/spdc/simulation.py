@@ -1,42 +1,62 @@
 import numpy as np
 from photonpairlab.spdc.analysis import SPDC_Analyzer
+from photonpairlab.apm.crystal_apm import CrystalAPM
+from photonpairlab.qpm.crystal_qpm import CrystalQPM
+
 
 class SPDC_Simulation:
-    def __init__(self, crystal, laser):
+    def __init__(self, crystal, laser, wavelength_signal=None, wavelength_idler=None):
         # Initialize the SPDC simulation with a crystal and laser object.
         self.crystal = crystal
         self.laser = laser
+        self.wavelength_signal = wavelength_signal
+        self.wavelength_idler = wavelength_idler
         # Initialize other parameters
         self.initialize_parameters()
     
     def initialize_parameters(self):
         """
-        Initializes the parameters required for the SPDC (Spontaneous Parametric Down-Conversion) simulation.
-        This method ensures that the crystal's poling pattern is generated if not already present, extracts
-        necessary data from the crystal and laser objects, computes phase mismatch, and calculates various
-        parameters such as angular frequencies, group velocities, and bandwidth for the simulation.
-        Attributes:
-            DeltaK_0 (float): The initial phase mismatch value computed from the crystal and laser properties.
-            omega_pump (float): The center angular frequency of the pump wave.
-            omega_down (float): The center angular frequency of the down-converted signal and idler waves.
-            K_pump (float): The group velocity of the pump wave.
-            K_idler (float): The group velocity of the idler wave.
-            K_signal (float): The group velocity of the signal wave.
-            angular_bandwidth (float): The bandwidth of the laser in angular frequency.
-            xi_eff (numpy.ndarray): The effective poling pattern of the crystal, flipped and converted to float64.
-            z (numpy.ndarray): The spatial positions along the crystal.
-        Notes:
-            - This method relies on the `generate_poling` and `compute_phase_mismatch` methods of the `Crystal` class.
-            - The laser's FWHM (Full Width at Half Maximum in m) is used to calculate the bandwidth.
-        """
-        
-        # Use compute_phase_mismatch from the Crystal class
-        _, (N_pump, N_signal, N_idler), self.DeltaK_0 = self.crystal.compute_phase_mismatch(self.laser)
-        
-        # Center angular frequencies
-        self.omega_pump = 2 * np.pi * self.laser.c / self.laser.lambda_2w
-        self.omega_down = self.omega_pump / 2
+        Initializes the simulation parameters based on the type of crystal and laser properties.
 
+        This method sets up various attributes required for the simulation, including phase mismatch,
+        angular frequencies, inverse group velocities, bandwidth, and effective nonlinear coefficients.
+
+        Raises:
+            ValueError: If the crystal type is unsupported.
+
+        Attributes:
+            omega_pump (float): Center angular frequency of the pump beam.
+            omega_down (float): Center angular frequency of the down-converted beam (for QPM crystals).
+            omega_signal (float): Center angular frequency of the signal beam (for APM crystals).
+            omega_idler (float): Center angular frequency of the idler beam (for APM crystals).
+            K_pump (float): Inverse group velocity for the pump beam.
+            K_signal (float): Inverse group velocity for the signal beam.
+            K_idler (float): Inverse group velocity for the idler beam.
+            angular_bandwidth (float): Angular bandwidth of the laser.
+            xi_eff (numpy.ndarray): Effective nonlinear coefficients for the simulation.
+            z (numpy.ndarray): Spatial coordinates along the crystal.
+
+        Notes:
+            - For QPM (Quasi-Phase Matching) crystals, the phase mismatch is computed using the `compute_phase_mismatch`
+              method of the `CrystalQPM` class.
+            - For APM (Angle-Phase Matching) crystals, the phase mismatch is computed using the `compute_phase_mismatch`
+              method of the `CrystalAPM` class, with additional wavelength parameters.
+        """
+        if isinstance(self.crystal, CrystalQPM):
+            # Use compute_phase_mismatch from the Crystal class
+            _, (N_pump, N_signal, N_idler), self.DeltaK_0 = self.crystal.compute_phase_mismatch(self.laser)
+            # Center angular frequencies
+            self.omega_pump = 2 * np.pi * self.laser.c / self.laser.lambda_2w
+            self.omega_down = self.omega_pump / 2
+        elif isinstance(self.crystal, CrystalAPM):
+            # Use compute_phase_mismatch from the Crystal class
+            _, (N_pump, N_signal, N_idler), self.DeltaK_0 = self.crystal.compute_phase_mismatch(self.laser, self.wavelength_signal, self.wavelength_idler, angle_pm=None)
+            # Center angular frequencies
+            self.omega_pump = 2 * np.pi * self.laser.c / self.laser.lambda_2w
+            self.omega_signal = 2 * np.pi * self.laser.c / self.wavelength_signal
+            self.omega_idler = 2 * np.pi * self.laser.c / self.wavelength_idler
+        else:
+            raise ValueError("Unsupported crystal type")
         # Inverse group velocities
         self.K_pump = N_pump / self.laser.c  # k' pump
         self.K_idler = N_idler / self.laser.c  # k' idler
@@ -47,7 +67,6 @@ class SPDC_Simulation:
         # xi_eff and z for simulation
         self.xi_eff = np.flip(self.crystal.sarray.astype("float64"))
         self.z = self.crystal.z
-    
     
     def compute_phase_integral(self,z, xi_eff, DeltaK):
         """
@@ -78,17 +97,51 @@ class SPDC_Simulation:
     
     def run_simulation(self, steps=100, dev=5):
         """
-        Vectorized SPDC simulation that uses numpy's broadcasting to compute the Joint Spectral Amplitude (JSA),
-        pump profile, phase, intensity, and related parameters.
+        Simulates the SPDC (Spontaneous Parametric Down-Conversion) process for a given crystal type.
+        This method computes the Joint Spectral Intensity (JSI), Joint Spectral Amplitude (JSA), 
+        and other related quantities based on the properties of the laser and crystal. It supports 
+        both quasi-phase-matched (QPM) and angle-phase-matched (APM) crystals.
+        Args:
+            steps (int, optional): Number of steps for wavelength arrays. Default is 100.
+            dev (float, optional): Deviation in wavelength (in nanometers) for signal and idler arrays. Default is 5.
+        Returns:
+            dict: A dictionary containing the following results:
+                - "Pump": Gaussian pump spectrum (array).
+                - "Phase": Phase integral values (array).
+                - "JSI": Joint Spectral Intensity (array).
+                - "JSA": Joint Spectral Amplitude (array).
+                - "SchmidtCoefficients": Placeholder for Schmidt coefficients (None).
+                - "Purity": Placeholder for purity (None).
+                - "K": Placeholder for Schmidt number (None).
+                - "SignalWavelengths": Signal wavelengths (array).
+                - "IdlerWavelengths": Idler wavelengths (array).
+                - "dev": Deviation in wavelength used for simulation.
+        Raises:
+            ValueError: If the crystal type is unsupported for SPDC simulation.
         """
-        # Generate signal and idler wavelength arrays
-        self.idler_wavelengths = np.linspace(self.laser.lambda_w - dev * 1e-9, self.laser.lambda_w + dev * 1e-9, steps)
-        self.signal_wavelengths = np.linspace(self.laser.lambda_w - dev * 1e-9, self.laser.lambda_w + dev * 1e-9, steps)
-    
+        if isinstance(self.crystal, CrystalQPM):
+            # Generate signal and idler wavelength arrays
+            self.idler_wavelengths = np.linspace(self.laser.lambda_w - dev * 1e-9, self.laser.lambda_w + dev * 1e-9, steps)
+            self.signal_wavelengths = np.linspace(self.laser.lambda_w - dev * 1e-9, self.laser.lambda_w + dev * 1e-9, steps)
+        elif isinstance(self.crystal, CrystalAPM):
+            # Generate signal and idler wavelength arrays
+            self.idler_wavelengths = np.linspace(self.wavelength_idler - dev * 1e-9, self.wavelength_idler + dev * 1e-9, steps)
+            self.signal_wavelengths = np.linspace(self.wavelength_signal - dev * 1e-9, self.wavelength_signal + dev * 1e-9, steps)
+        else:
+            raise ValueError("Unsupported crystal type for SPDC simulation") 
+           
         # Precompute constants
         fs = 2 * np.pi * self.laser.c / self.signal_wavelengths[:, None]  # Signal frequencies (column vector)
         fi = 2 * np.pi * self.laser.c / self.idler_wavelengths[None, :]  # Idler frequencies (row vector)
-        DeltaK_1 = (self.K_pump - self.K_signal) * (fs - self.omega_down) + (self.K_pump - self.K_idler) * (fi - self.omega_down)
+
+        # Compute DeltaK_0 and DeltaK_1 based on crystal type
+        if isinstance(self.crystal, CrystalQPM):
+            DeltaK_1 = (self.K_pump - self.K_signal) * (fs - self.omega_down) + (self.K_pump - self.K_idler) * (fi - self.omega_down)
+        elif isinstance(self.crystal, CrystalAPM):
+            DeltaK_1 = (self.K_pump - self.K_signal) * (fs - self.omega_signal) + (self.K_pump - self.K_idler) * (fi - self.omega_idler)
+        else:
+            raise ValueError("Unsupported crystal type for SPDC simulation")
+        
         DeltaK = self.DeltaK_0 + DeltaK_1
         
         # Compute Pump, Phase, JSI, and JSA using vectorized operations

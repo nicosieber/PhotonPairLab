@@ -13,7 +13,7 @@ class BaseMaterialAPM:
         raise NotImplementedError("This method should be implemented by subclasses.")
 
 
-    def refractive_index(self, wavelength, axis, temperature=None):
+    def refractive_index(self, wavelength, axis):
         """
         Calculate the refractive index for a given wavelength, axis and temperature.
         Must be implemented by subclasses.
@@ -26,9 +26,16 @@ class BaseMaterialAPM:
         """
         raise NotImplementedError("This method should be implemented by subclasses.")
 
-    def group_index(self, wavelength, axis, temperature=25):
+    def group_index(self, wavelength, theta_deg=None, phi_deg=0, axis=None):
         try:
-            n_func = lambda wavelength: self.refractive_index(wavelength, axis, temperature)
+            if theta_deg is not None:
+                # Use effective refractive index for angle-based calculation
+                n_func = lambda wl: self.effective_refractive_index(wl, theta_deg, phi_deg)
+            elif axis is not None:
+                # Use axis-based refractive index (for QPM along principal axis)
+                n_func = lambda wl: self.refractive_index(wl, axis)
+            else:
+                raise ValueError("Either axis or theta_deg must be provided.")
             
             # Calculate the refractive index at the given wavelength
             n = n_func(wavelength)
