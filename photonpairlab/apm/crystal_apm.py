@@ -5,7 +5,7 @@ from .materials_apm import BaseMaterialAPM
 from photonpairlab.laser import CWLaser
 
 class CrystalAPM:
-    def __init__(self, Lo: float, material: BaseMaterialAPM, spdc: str = "type-I", phi_deg: float = 0.0):
+    def __init__(self, crystal_length: float, material: BaseMaterialAPM, spdc: str = "type-I", phi_deg: float = 0.0):
         """
         Initialize the CrystalAPM class.
 
@@ -14,7 +14,7 @@ class CrystalAPM:
             material (BaseMaterialAPM): Material object containing Sellmeier coefficients.
             spdc (str): Type of SPDC process ('type-I' or 'type-II').
         """
-        self.Lo = Lo
+        self.crystal_length = crystal_length
         self.material = material
         self.spdc = spdc
         self.phi_deg = phi_deg  # used for biaxial crystals
@@ -25,7 +25,7 @@ class CrystalAPM:
         self.mm = 1e-3
 
         # Poling pattern attributes (to be computed)
-        self.sarray = None
+        self.poling_pattern = None
         self.z = None
 
     def generate_poling(self, resolution=5):
@@ -39,19 +39,19 @@ class CrystalAPM:
                                         Default is 5.
 
         Notes:
-            - The total length of the z-axis (z) will match the length of the sarray.
+            - The total length of the z-axis (z) will match the length of the poling_pattern.
         """
         # Calculate the total number of subdivisions based on resolution and crystal length
         Lc = 50e-6
-        Lo = self.Lo
-        num_domains = int(np.floor(Lo / Lc))
+        crystal_length = self.crystal_length
+        num_domains = int(np.floor(crystal_length / Lc))
         # Create the polarizations array using np.tile
         polarizations = np.tile([1, 1], num_domains)
-        # Create the sarray using np.repeat
-        self.sarray = np.repeat(polarizations, resolution)
-        self.Lo = num_domains * Lc
-        # Calculate z values directly based on the length of sarray
-        self.z = np.linspace(-self.Lo / 2, self.Lo / 2, len(self.sarray))
+        # Create the poling_pattern using np.repeat
+        self.poling_pattern = np.repeat(polarizations, resolution)
+        self.crystal_length = num_domains * Lc
+        # Calculate z values directly based on the length of poling_pattern
+        self.z = np.linspace(-self.crystal_length / 2, self.crystal_length / 2, len(self.poling_pattern))
 
     def refractive_index(self, wavelength, axis):
         """
@@ -109,7 +109,7 @@ class CrystalAPM:
         """
         result = minimize_scalar(
             lambda angle: abs(self.delta_k(angle, laser, wavelength_signal, wavelength_idler)),
-            bounds=(-180, 180),
+            bounds=(0, 90),
             method='bounded',
             #options={'xatol': 1e-5}  # Set the absolute tolerance for the solution
         )

@@ -3,12 +3,12 @@ import numpy as np
 from .materials_qpm import BaseMaterial
 
 class CrystalQPM:
-    def __init__(self, coherence_length: float, Lo: float, T: float, w: float, material: BaseMaterial, spdc: str = "type-II"):
+    def __init__(self, coherence_length: float, crystal_length: float, T: float, w: float, material: BaseMaterial, spdc: str = "type-II"):
         """
         Initializes the CrystalQPM object with the given parameters.
         Args:
             coherence_length (float): Coherence length of the crystal in meters.
-            Lo (float): Physical length of the crystal in meters.
+            crystal_length (float): Physical length of the crystal in meters.
             T (float): Temperature of the crystal in degrees Celsius.
             w (float): Domain width parameter in meters.
             material (BaseMaterial): Materials database object containing material properties.
@@ -18,7 +18,7 @@ class CrystalQPM:
             ValueError: If an unsupported SPDC type is provided.
         Attributes:
             coherence_length (float): Coherence length of the crystal.
-            Lo (float): Physical length of the crystal.
+            crystal_length (float): Physical length of the crystal.
             T (float): Temperature of the crystal.
             w (float): Domain width parameter.
             material (BaseMaterial): Materials database object.
@@ -27,15 +27,15 @@ class CrystalQPM:
             um (float): Conversion factor for micrometers to meters (1e-6).
             mm (float): Conversion factor for millimeters to meters (1e-3).
             L (float): Temperature-expanded length of the crystal in meters.
-            sarray (NoneType): Placeholder for poling pattern attributes.
-            atarray (NoneType): Placeholder for poling pattern attributes.
+            poling_pattern (NoneType): Placeholder for poling pattern attributes.
+            target_amplitudes (NoneType): Placeholder for poling pattern attributes.
             amuparray (NoneType): Placeholder for poling pattern attributes.
             amdownarray (NoneType): Placeholder for poling pattern attributes.
             altered_z (NoneType): Placeholder for altered z-axis values.
             z (NoneType): Placeholder for z-axis values.
         """
         self.coherence_length = coherence_length        # Coherence length (m)
-        self.Lo = Lo        # Physical length of the crystal (m)
+        self.crystal_length = crystal_length        # Physical length of the crystal (m)
         self.T = T          # Temperature (°C)
         self.w = w          # Domain width parameter (m)
         self.material = material  # Materials database object
@@ -48,13 +48,13 @@ class CrystalQPM:
 
         # Temperature Expansion of crystal
         if self.spdc == "type-II":
-            self.L = self.material.thermal_expansion(self.Lo, "z", self.T)
+            self.temperature_adjusted_crystal_length = self.material.thermal_expansion(self.crystal_length, "z", self.T)
         else:
             raise ValueError(f"Unsupported SPDC type: {self.spdc}")
             
         # Poling pattern attributes (to be computed)
-        self.sarray = None
-        self.atarray = None
+        self.poling_pattern = None
+        self.target_amplitudes = None
         self.amuparray = None
         self.amdownarray = None
         self.altered_z = None
@@ -120,7 +120,7 @@ class CrystalQPM:
         """
         return np.exp(-((z - L / 2) ** 2) / (L ** 2 / 8)) # L**2 is divided by 8 as suggested by the reference
 
-    def Atarget(self, w, m, L, coherence_length, DeltaK):
+    def target_amplitude(self, w, m, L, coherence_length, DeltaK):
         """
         Computes the target amplitude for a given set of parameters.
         
@@ -167,28 +167,30 @@ class CrystalQPM:
         This method creates a periodic poling structure by alternating polarizations
         (e.g., [1, -1, 1, -1, ...]) over the length of the crystal. The resolution
         determines the number of subdivisions per coherence length (coherence_length). The method
-        also adjusts the crystal length (Lo) to be an integer multiple of the coherence
+        also adjusts the crystal length (crystal_length) to be an integer multiple of the coherence
         length and calculates the corresponding z-axis values.
         Parameters:
             resolution (int, optional): The number of subdivisions per coherence length.
                                         Default is 5.
         Notes:
-            - The coherence length (coherence_length) and original crystal length (Lo) must be defined
+            - The coherence length (coherence_length) and original crystal length (crystal_length) must be defined
               as attributes of the class before calling this method.
-            - The total length of the z-axis (z) will match the length of the sarray.
+            - The total length of the z-axis (z) will match the length of the poling_pattern.
         """
         
         coherence_length = self.coherence_length
-        Lo = self.Lo
-        num_domains = int(np.floor(Lo / coherence_length))
+        crystal_length = self.crystal_length
+        num_domains = int(np.floor(crystal_length / coherence_length))
         # Create the polarizations array using np.tile
         polarizations = np.tile([1, -1], num_domains)
-        # Create the sarray using np.repeat
-        self.sarray = np.repeat(polarizations, resolution)
-        # Adjust Lo to be an integer multiple of coherence_length
-        self.Lo = num_domains * coherence_length
-        # Calculate z values directly based on the length of sarray
-        self.z = np.linspace(-self.L / 2, self.L / 2, len(self.sarray))
+        # Create the poling pattern using np.repeat
+        self.poling_pattern = np.repeat(polarizations, resolution)
+        # Adjust crystal_length to be an integer multiple of coherence_length
+        self.crystal_length = num_domains * coherence_length
+        # Calculate z values directly based on the length of poling_pattern
+        self.z = np.linspace(-self.temperature_adjusted_crystal_length / 2, 
+                             self.temperature_adjusted_crystal_length / 2, 
+                             len(self.poling_pattern))
 
     def generate_subcoh_poling(self, laser):
         """
@@ -197,8 +199,8 @@ class CrystalQPM:
 
         This method computes the poling pattern by iteratively determining the orientation of the 
         nonlinear domains (up or down) that minimizes the error between the target amplitude and 
-        the computed amplitude. The resulting poling pattern is stored in the `sarray` attribute, 
-        along with additional computed attributes such as `atarray`, `amuparray`, `amdownarray`, 
+        the computed amplitude. The resulting poling pattern is stored in the `poling_pattern` attribute, 
+        along with additional computed attributes such as `target_amplitudes`, `amuparray`, `amdownarray`, 
         and `altered_z`.
 
         The algorithm follows the sub-coherence length domain engineering approach, which optimizes 
@@ -226,53 +228,53 @@ class CrystalQPM:
         # Proceed with the apodization algorithm using self.DeltaK_0
         w = self.w
         mstart = 2
-        L = self.L
+        temperature_adjusted_crystal_length = self.temperature_adjusted_crystal_length
         coherence_length = self.coherence_length
         DeltaK = self.DeltaK_0
 
-        num_iterations = int(np.ceil(L / w)) + 1 # Total number of iterations
+        num_iterations = int(np.ceil(temperature_adjusted_crystal_length / w)) + 1 # Total number of iterations
 
         # Precompute altered_z
         altered_z = np.linspace(0, num_iterations * w, num_iterations + 1)
-        # Initialize sarray
-        sarray = np.zeros(num_iterations + 1, dtype=int)
-        sarray[0] = -1
-        atarray = np.zeros(num_iterations, dtype=complex)
+        # Initialize poling_pattern
+        poling_pattern = np.zeros(num_iterations + 1, dtype=int)
+        poling_pattern[0] = -1
+        target_amplitudes = np.zeros(num_iterations, dtype=complex)
         amuparray = np.zeros(num_iterations, dtype=complex)
         amdownarray = np.zeros(num_iterations, dtype=complex)
 
         for idx in range(num_iterations):
             m = mstart + idx
 
-            # Compute Atarget once per iteration
-            at = self.Atarget(w, m, L, coherence_length, DeltaK)
+            # Compute target_amplitude once per iteration
+            at = self.target_amplitude(w, m, temperature_adjusted_crystal_length, coherence_length, DeltaK)
 
-            # Test with sarray[idx + 1] = 1 (up)
-            sarray[idx + 1] = 1
-            amup = self.Am(w, altered_z[: idx + 2], m, coherence_length, sarray[: idx + 2])
+            # Test with poling_pattern[idx + 1] = 1 (up)
+            poling_pattern[idx + 1] = 1
+            amup = self.Am(w, altered_z[: idx + 2], m, coherence_length, poling_pattern[: idx + 2])
 
-            # Test with sarray[idx + 1] = -1 (down)
-            sarray[idx + 1] = -1
-            amdown = self.Am(w, altered_z[: idx + 2], m, coherence_length, sarray[: idx + 2])
+            # Test with poling_pattern[idx + 1] = -1 (down)
+            poling_pattern[idx + 1] = -1
+            amdown = self.Am(w, altered_z[: idx + 2], m, coherence_length, poling_pattern[: idx + 2])
 
             # Compute errors
             eup = np.abs(at - amup)
             edown = np.abs(at - amdown)
 
             # Store results
-            atarray[idx] = at
+            target_amplitudes[idx] = at
             amuparray[idx] = amup
             amdownarray[idx] = amdown
 
             # Decide which orientation minimizes the error
             if eup < edown:
-                sarray[idx + 1] = 1  # Keep 'up' orientation
+                poling_pattern[idx + 1] = 1  # Keep 'up' orientation
             else:
-                sarray[idx + 1] = -1  # Keep 'down' orientation
+                poling_pattern[idx + 1] = -1  # Keep 'down' orientation
 
-        self.sarray = sarray
-        self.atarray = atarray
+        self.poling_pattern = poling_pattern
+        self.target_amplitudes = target_amplitudes
         self.amuparray = amuparray
         self.amdownarray = amdownarray
         self.altered_z = altered_z
-        self.z = altered_z - L / 2
+        self.z = altered_z - temperature_adjusted_crystal_length / 2

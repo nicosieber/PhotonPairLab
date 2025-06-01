@@ -50,8 +50,7 @@ class SPDC_Plotter:
         
         return fig, (ax1, ax2)
     
-    def plot_pump(self, font_size=12):
-        cmap = cm.viridis
+    def plot_pump(self, font_size=12, color_map=cm.viridis):
         number_ticklabels = 5
 
         signal_wavelengths = self.results["SignalWavelengths"] * 1e9
@@ -59,13 +58,13 @@ class SPDC_Plotter:
         Pump = self.results["Pump"]
 
         fig, axs = plt.subplots(1, 1, sharex=True, constrained_layout=False)
-        im = axs.imshow(Pump / np.amax(Pump), cmap=cmap)
+        im = axs.imshow(Pump / np.amax(Pump), 
+                cmap=color_map, 
+                extent=[signal_wavelengths.min(), signal_wavelengths.max(),
+                        idler_wavelengths.min(), idler_wavelengths.max()],
+                origin='lower')  # or 'upper' if you want to flip y
         im.set_interpolation("bilinear")
-        im.set_extent([
-            signal_wavelengths.min(), signal_wavelengths.max(),
-            idler_wavelengths.min(), idler_wavelengths.max()
-        ])
-        axs.invert_yaxis()
+        
         axs.set_xlabel("signal wavelength (nm)", fontsize=font_size)
         axs.set_ylabel("idler wavelength (nm)", fontsize=font_size)
         axs.set_title("Pump Pulse Envelope (PPE)", fontsize=font_size)
@@ -76,8 +75,7 @@ class SPDC_Plotter:
         
         return fig, axs
 
-    def plot_phase(self, font_size=12):
-        cmap = cm.viridis
+    def plot_phase(self, font_size=12, color_map=cm.viridis):
         number_ticklabels = 5
 
         signal_wavelengths = self.results["SignalWavelengths"] * 1e9
@@ -85,13 +83,13 @@ class SPDC_Plotter:
         Phase = self.results["Phase"]
 
         fig, axs = plt.subplots(1, 1, sharex=True, constrained_layout=False)
-        im = axs.imshow(Phase / np.amax(Phase), cmap=cmap)
+        im = axs.imshow(Phase / np.amax(Phase), 
+                cmap=color_map, 
+                extent=[signal_wavelengths.min(), signal_wavelengths.max(),
+                        idler_wavelengths.min(), idler_wavelengths.max()],
+                origin='lower')  # or 'upper' if you want to flip y
         im.set_interpolation("bilinear")
-        im.set_extent([
-            signal_wavelengths.min(), signal_wavelengths.max(),
-            idler_wavelengths.min(), idler_wavelengths.max()
-        ])
-        axs.invert_yaxis()
+        
         axs.set_xlabel("signal wavelength (nm)", fontsize=font_size)
         axs.set_ylabel("idler wavelength (nm)", fontsize=font_size)
         axs.set_title("Phase Matching Function (PMF)", fontsize=font_size)
@@ -102,8 +100,7 @@ class SPDC_Plotter:
         
         return fig, axs
 
-    def plot_jsi(self, font_size=12):
-        cmap = cm.viridis
+    def plot_jsi(self, font_size=12, color_map=cm.viridis):
         number_ticklabels = 5
 
         signal_wavelengths = self.results["SignalWavelengths"] * 1e9
@@ -111,13 +108,14 @@ class SPDC_Plotter:
         JSI = self.results["JSI"]
 
         fig, axs = plt.subplots(1, 1, sharex=True, constrained_layout=False)
-        im = axs.imshow(JSI / np.amax(JSI), cmap=cmap)
+        im = axs.imshow(JSI / np.amax(JSI), 
+                cmap=color_map, 
+                extent=[signal_wavelengths.min(), signal_wavelengths.max(),
+                        idler_wavelengths.min(), idler_wavelengths.max()],
+                origin='lower')  # or 'upper' if you want to flip y
+
         im.set_interpolation("bilinear")
-        im.set_extent([
-            signal_wavelengths.min(), signal_wavelengths.max(),
-            idler_wavelengths.min(), idler_wavelengths.max()
-        ])
-        axs.invert_yaxis()
+        
         axs.set_xlabel("signal wavelength (nm)", fontsize=font_size)
         axs.set_ylabel("idler wavelength (nm)", fontsize=font_size)
         axs.set_title("Joint Spectral Intensity (JSI)", fontsize=font_size)
@@ -128,8 +126,7 @@ class SPDC_Plotter:
         
         return fig, axs
 
-    def plot_jsa(self, font_size=12):
-        cmap = cm.viridis
+    def plot_jsa(self, font_size=12, color_map=cm.viridis):
         number_ticklabels = 5
 
         signal_wavelengths = self.results["SignalWavelengths"] * 1e9
@@ -137,13 +134,13 @@ class SPDC_Plotter:
         JSA = self.results["JSA"]
 
         fig, axs = plt.subplots(1, 1, sharex=True, constrained_layout=False)
-        im = axs.imshow(JSA / np.amax(JSA), cmap=cmap)
+        im = axs.imshow(JSA / np.amax(JSA), 
+                cmap=color_map, 
+                extent=[signal_wavelengths.min(), signal_wavelengths.max(),
+                        idler_wavelengths.min(), idler_wavelengths.max()],
+                origin='lower')  # or 'upper' if you want to flip y
         im.set_interpolation("bilinear")
-        im.set_extent([
-            signal_wavelengths.min(), signal_wavelengths.max(),
-            idler_wavelengths.min(), idler_wavelengths.max()
-        ])
-        axs.invert_yaxis()
+        
         axs.set_xlabel("signal wavelength (nm)", fontsize=font_size)
         axs.set_ylabel("idler wavelength (nm)", fontsize=font_size)
         axs.set_title("Joint Spectral Amplitude (JSA)", fontsize=font_size)

@@ -65,7 +65,7 @@ class SPDC_Simulation:
         # Bandwidth
         self.angular_bandwidth = self.laser.bandwidth_wavelength_to_angular_bandwidth(self.laser.bandwidth_wavelength)
         # xi_eff and z for simulation
-        self.xi_eff = np.flip(self.crystal.sarray.astype("float64"))
+        self.xi_eff = np.flip(self.crystal.poling_pattern.astype("float64"))
         self.z = self.crystal.z
     
     def compute_phase_integral(self,z, xi_eff, DeltaK):
