@@ -4,15 +4,14 @@ class BaseLaser:
     """
     Base class for lasers. Contains common attributes and methods.
     """
-    def __init__(self, wavelength):
+    def __init__(self, wavelength_pump):
         """
         Initializes the LaserBase object.
 
         Args:
             wavelength (float): Central wavelength of the laser in meters (m).
         """
-        self.lambda_2w = wavelength  # Central wavelength of the pump (m)
-        self.lambda_w = 2 * wavelength  # Central wavelength of down-converted photons (m)
+        self.wavelength_pump = wavelength_pump  # Central wavelength of the pump (m)
         self.c = 299792458  # Speed of light in meters per second (m/s)
 
     def bandwidth_wavelength_to_pulse_width(self, bandwidth):
@@ -26,7 +25,7 @@ class BaseLaser:
         Returns:
             float: Pulse width in seconds.
         """
-        pulse_width = 2 * np.log(2) / np.pi * self.lambda_2w ** 2 / (bandwidth * self.c)
+        pulse_width = 2 * np.log(2) / np.pi * self.wavelength_pump ** 2 / (bandwidth * self.c)
         return pulse_width
 
     def pulse_duration_to_bandwidth_wavelength(self, pulse_width):
@@ -40,7 +39,7 @@ class BaseLaser:
         Returns:
             float: Bandwidth in meters.
         """
-        bandwidth = 2 * np.log(2) / np.pi * self.lambda_2w ** 2 / (pulse_width * self.c)
+        bandwidth = 2 * np.log(2) / np.pi * self.wavelength_pump ** 2 / (pulse_width * self.c)
         return bandwidth
     
     def bandwidth_wavelength_to_angular_bandwidth(self, bandwidth_wavelength):
@@ -53,7 +52,7 @@ class BaseLaser:
         Returns:
             float: Angular bandwidth in radians per second.
         """
-        angular_bandwidth = (2 * np.pi * self.c) * bandwidth_wavelength/ (self.lambda_2w ** 2 * 2 * np.sqrt(np.log(2)))
+        angular_bandwidth = (2 * np.pi * self.c) * bandwidth_wavelength/ (self.wavelength_pump ** 2 * 2 * np.sqrt(np.log(2)))
         return angular_bandwidth
     
     def angular_bandwidth_to_bandwidth_wavelength(self, angular_bandwidth):
@@ -64,6 +63,6 @@ class BaseLaser:
         Returns:
             float: Bandwidth in meters.
         """
-        bandwidth_wavelength = (self.lambda_2w ** 2 * 2 * np.sqrt(np.log(2))) / (2 * np.pi * self.c) * angular_bandwidth
+        bandwidth_wavelength = (self.wavelength_pump ** 2 * 2 * np.sqrt(np.log(2))) / (2 * np.pi * self.c) * angular_bandwidth
         return bandwidth_wavelength
     

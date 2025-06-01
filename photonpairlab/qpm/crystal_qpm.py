@@ -3,34 +3,38 @@ import numpy as np
 from .materials_qpm import BaseMaterial
 
 class CrystalQPM:
-    def __init__(self, Lc: float, Lo: float, T: float, w: float, material: BaseMaterial, spdc: str = "type-II"):
+    def __init__(self, coherence_length: float, Lo: float, T: float, w: float, material: BaseMaterial, spdc: str = "type-II"):
         """
-        Initializes a Crystal object with its physical and material properties.
+        Initializes the CrystalQPM object with the given parameters.
         Args:
-            Lc (float): Coherence length of the crystal in meters.
+            coherence_length (float): Coherence length of the crystal in meters.
             Lo (float): Physical length of the crystal in meters.
             T (float): Temperature of the crystal in degrees Celsius.
             w (float): Domain width parameter in meters.
-            material (BaseMaterial): Material database object containing the crystal's material properties.
+            material (BaseMaterial): Materials database object containing material properties.
+            spdc (str, optional): Type of SPDC process. Defaults to "type-II". 
+                                  Currently, only "type-II" is supported.
+        Raises:
+            ValueError: If an unsupported SPDC type is provided.
         Attributes:
-            Lc (float): Coherence length of the crystal.
+            coherence_length (float): Coherence length of the crystal.
             Lo (float): Physical length of the crystal.
             T (float): Temperature of the crystal.
             w (float): Domain width parameter.
-            material (BaseMaterial): Material database object.
+            material (BaseMaterial): Materials database object.
+            spdc (str): Type of SPDC process.
             nm (float): Conversion factor for nanometers to meters (1e-9).
             um (float): Conversion factor for micrometers to meters (1e-6).
             mm (float): Conversion factor for millimeters to meters (1e-3).
-            L (float): Temperature-expanded length of the crystal, calculated using a quadratic expansion formula.
-            sarray (None or array-like): Poling pattern attribute to be computed.
-            atarray (None or array-like): Poling pattern attribute to be computed.
-            amuparray (None or array-like): Poling pattern attribute to be computed.
-            amdownarray (None or array-like): Poling pattern attribute to be computed.
-            altered_z (None or array-like): Poling pattern attribute to be computed.
-            z (None or array-like): Poling pattern attribute to be computed.
+            L (float): Temperature-expanded length of the crystal in meters.
+            sarray (NoneType): Placeholder for poling pattern attributes.
+            atarray (NoneType): Placeholder for poling pattern attributes.
+            amuparray (NoneType): Placeholder for poling pattern attributes.
+            amdownarray (NoneType): Placeholder for poling pattern attributes.
+            altered_z (NoneType): Placeholder for altered z-axis values.
+            z (NoneType): Placeholder for z-axis values.
         """
-        
-        self.Lc = Lc        # Coherence length (m)
+        self.coherence_length = coherence_length        # Coherence length (m)
         self.Lo = Lo        # Physical length of the crystal (m)
         self.T = T          # Temperature (°C)
         self.w = w          # Domain width parameter (m)
@@ -85,28 +89,29 @@ class CrystalQPM:
         Raises:
             ValueError: If the SPDC type is not supported.
         """
-        lambda_w = laser.lambda_w
-        lambda_2w = laser.lambda_2w
+
+        wavelength_pump = laser.wavelength_pump
+        wavelength_downconverted = laser.wavelength_pump * 2  # Assuming type-II SPDC where pump is twice the signal/idler wavelength
 
         if self.spdc == "type-II":
             # Pump has one polarization, signal and idler have orthogonal polarizations
-            n_pump = self.refractive_index(lambda_2w * 1e6, "y")
-            n_signal = self.refractive_index(lambda_w * 1e6, "z")
-            n_idler = self.refractive_index(lambda_w * 1e6, "y")
+            n_pump = self.refractive_index(wavelength_pump * 1e6, "y")
+            n_signal = self.refractive_index(wavelength_downconverted * 1e6, "z")
+            n_idler = self.refractive_index(wavelength_downconverted * 1e6, "y")
 
             # Group velocities
-            N_pump = self.group_index(lambda_2w * 1e6, "y")
-            N_signal = self.group_index(lambda_w * 1e6, "z")
-            N_idler = self.group_index(lambda_w * 1e6, "y")
+            N_pump = self.group_index(wavelength_pump * 1e6, "y")
+            N_signal = self.group_index(wavelength_downconverted * 1e6, "z")
+            N_idler = self.group_index(wavelength_downconverted * 1e6, "y")
         
         else:
             raise ValueError(f"Unsupported SPDC type: {self.spdc}")
 
         # Compute DeltaK_0
-        DeltaK_0 = 2 * np.pi * (n_signal / lambda_w + n_idler / lambda_w - n_pump / lambda_2w)
+        DeltaK_0 = 2 * np.pi * (n_signal / wavelength_downconverted + n_idler / wavelength_downconverted - n_pump / wavelength_pump)
         return (n_pump, n_signal, n_idler), (N_pump, N_signal, N_idler), DeltaK_0
     
-    def gtarget(self, z, L, lc):
+    def gtarget(self, z, L, coherence_length):
         """
         Computes a Gaussian target function based on the given parameters.
 
@@ -115,7 +120,7 @@ class CrystalQPM:
         """
         return np.exp(-((z - L / 2) ** 2) / (L ** 2 / 8)) # L**2 is divided by 8 as suggested by the reference
 
-    def Atarget(self, w, m, L, Lc, DeltaK):
+    def Atarget(self, w, m, L, coherence_length, DeltaK):
         """
         Computes the target amplitude for a given set of parameters.
         
@@ -123,13 +128,13 @@ class CrystalQPM:
             complex: The computed target amplitude as a complex number.
         """
         z = np.linspace(0, m * w, num=m)
-        g = self.gtarget(z, L, Lc / 2)
-        cos_term = np.cos(np.pi / (Lc / 2) * z)
+        g = self.gtarget(z, L, coherence_length / 2)
+        cos_term = np.cos(np.pi / (coherence_length / 2) * z)
         exp_term = np.exp(1j * DeltaK * z)
         y = g * cos_term * exp_term
         return -1j * np.trapz(y, z)
 
-    def Am(self, w, altered_z, m, Lc, sn):
+    def Am(self, w, altered_z, m, coherence_length, sn):
         """
         Computes the amplitude modulation function Am for a given set of parameters.
 
@@ -138,9 +143,9 @@ class CrystalQPM:
         """
         if len(sn) != m:
             raise ValueError("Poling array length wrong.")
-        exp_term = np.exp(1j * np.pi / (Lc / 2) * altered_z)
+        exp_term = np.exp(1j * np.pi / (coherence_length / 2) * altered_z)
         y = np.sum(sn * exp_term)
-        return Lc / (2 * np.pi) * (np.exp(-1j * np.pi / (Lc / 2) * w) - 1) * y
+        return coherence_length / (2 * np.pi) * (np.exp(-1j * np.pi / (coherence_length / 2) * w) - 1) * y
 
     def generate_poling(self,laser,mode='periodic',resolution=5):
         """
@@ -161,51 +166,59 @@ class CrystalQPM:
         Generates a periodic poling structure for the crystal.
         This method creates a periodic poling structure by alternating polarizations
         (e.g., [1, -1, 1, -1, ...]) over the length of the crystal. The resolution
-        determines the number of subdivisions per coherence length (Lc). The method
+        determines the number of subdivisions per coherence length (coherence_length). The method
         also adjusts the crystal length (Lo) to be an integer multiple of the coherence
         length and calculates the corresponding z-axis values.
         Parameters:
             resolution (int, optional): The number of subdivisions per coherence length.
                                         Default is 5.
         Notes:
-            - The coherence length (Lc) and original crystal length (Lo) must be defined
+            - The coherence length (coherence_length) and original crystal length (Lo) must be defined
               as attributes of the class before calling this method.
             - The total length of the z-axis (z) will match the length of the sarray.
         """
         
-        Lc = self.Lc
+        coherence_length = self.coherence_length
         Lo = self.Lo
-        num_domains = int(np.floor(Lo / Lc))
+        num_domains = int(np.floor(Lo / coherence_length))
         # Create the polarizations array using np.tile
         polarizations = np.tile([1, -1], num_domains)
         # Create the sarray using np.repeat
         self.sarray = np.repeat(polarizations, resolution)
-        # Adjust Lo to be an integer multiple of Lc
-        self.Lo = num_domains * Lc
+        # Adjust Lo to be an integer multiple of coherence_length
+        self.Lo = num_domains * coherence_length
         # Calculate z values directly based on the length of sarray
         self.z = np.linspace(-self.L / 2, self.L / 2, len(self.sarray))
 
     def generate_subcoh_poling(self, laser):
         """
-        Generates a custom poling pattern for the nonlinear crystal based on the input laser parameters.
+        Generates a sub-coherence length apodized poling pattern for the nonlinear crystal 
+        based on the input laser parameters.
 
         This method computes the poling pattern by iteratively determining the orientation of the 
         nonlinear domains (up or down) that minimizes the error between the target amplitude and 
-        the computed amplitude. The resulting poling pattern is stored in the `sarray` attribute.
+        the computed amplitude. The resulting poling pattern is stored in the `sarray` attribute, 
+        along with additional computed attributes such as `atarray`, `amuparray`, `amdownarray`, 
+        and `altered_z`.
 
-        Reference for this method:
-            Sub-coherence length apodization algorithm according to
-            Quantum Sci. Technol. 2 (2017)035001 (https://doi.org/10.1088/2058-9565/aa78d4)
-            Pure down-conversion photons through sub-coherence-length domain engineering
-            Francesco Graffitti, Dmytro Kundys, Derryck T Reid, AgataMBrańczyk
+        The algorithm follows the sub-coherence length domain engineering approach, which optimizes 
+        the poling pattern to achieve pure down-conversion photons. It uses the refractive indices 
+        and group indices of the crystal at the fundamental and second harmonic wavelengths to 
+        compute the phase mismatch (DeltaK_0), and applies an iterative apodization algorithm to 
+        determine the optimal poling configuration.
+
+        Reference:
+            Sub-coherence length apodization algorithm according to:
+            Quantum Sci. Technol. 2 (2017) 035001 (https://doi.org/10.1088/2058-9565/aa78d4)
+            "Pure down-conversion photons through sub-coherence-length domain engineering"
+            Francesco Graffitti, Dmytro Kundys, Derryck T Reid, Agata M Brańczyk, 
             and Alessandro Fedrizzi.
 
         Notes:
-            - The method uses the refractive indices and group indices of the crystal at the 
-              fundamental and second harmonic wavelengths to compute the phase mismatch (DeltaK_0).
-            - The apodization algorithm is applied iteratively to determine the optimal poling pattern.
-            - The method assumes that the crystal parameters (e.g., `w`, `L`, `Lc`) 
+            - The method assumes that the crystal parameters (e.g., `w`, `L`, `coherence_length`) 
               are already defined as attributes of the class.
+            - The generated poling pattern (`sarray`) and other computed attributes are stored 
+              as class attributes for further use.
         """
         
         # Compute DeltaK_0 using the compute_phase_mismatch method
@@ -214,7 +227,7 @@ class CrystalQPM:
         w = self.w
         mstart = 2
         L = self.L
-        Lc = self.Lc
+        coherence_length = self.coherence_length
         DeltaK = self.DeltaK_0
 
         num_iterations = int(np.ceil(L / w)) + 1 # Total number of iterations
@@ -232,15 +245,15 @@ class CrystalQPM:
             m = mstart + idx
 
             # Compute Atarget once per iteration
-            at = self.Atarget(w, m, L, Lc, DeltaK)
+            at = self.Atarget(w, m, L, coherence_length, DeltaK)
 
             # Test with sarray[idx + 1] = 1 (up)
             sarray[idx + 1] = 1
-            amup = self.Am(w, altered_z[: idx + 2], m, Lc, sarray[: idx + 2])
+            amup = self.Am(w, altered_z[: idx + 2], m, coherence_length, sarray[: idx + 2])
 
             # Test with sarray[idx + 1] = -1 (down)
             sarray[idx + 1] = -1
-            amdown = self.Am(w, altered_z[: idx + 2], m, Lc, sarray[: idx + 2])
+            amdown = self.Am(w, altered_z[: idx + 2], m, coherence_length, sarray[: idx + 2])
 
             # Compute errors
             eup = np.abs(at - amup)

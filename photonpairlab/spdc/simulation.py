@@ -46,13 +46,13 @@ class SPDC_Simulation:
             # Use compute_phase_mismatch from the Crystal class
             _, (N_pump, N_signal, N_idler), self.DeltaK_0 = self.crystal.compute_phase_mismatch(self.laser)
             # Center angular frequencies
-            self.omega_pump = 2 * np.pi * self.laser.c / self.laser.lambda_2w
+            self.omega_pump = 2 * np.pi * self.laser.c / self.laser.wavelength_pump
             self.omega_down = self.omega_pump / 2
         elif isinstance(self.crystal, CrystalAPM):
             # Use compute_phase_mismatch from the Crystal class
             _, (N_pump, N_signal, N_idler), self.DeltaK_0 = self.crystal.compute_phase_mismatch(self.laser, self.wavelength_signal, self.wavelength_idler, angle_pm=None)
             # Center angular frequencies
-            self.omega_pump = 2 * np.pi * self.laser.c / self.laser.lambda_2w
+            self.omega_pump = 2 * np.pi * self.laser.c / self.laser.wavelength_pump
             self.omega_signal = 2 * np.pi * self.laser.c / self.wavelength_signal
             self.omega_idler = 2 * np.pi * self.laser.c / self.wavelength_idler
         else:
@@ -121,8 +121,8 @@ class SPDC_Simulation:
         """
         if isinstance(self.crystal, CrystalQPM):
             # Generate signal and idler wavelength arrays
-            self.idler_wavelengths = np.linspace(self.laser.lambda_w - dev * 1e-9, self.laser.lambda_w + dev * 1e-9, steps)
-            self.signal_wavelengths = np.linspace(self.laser.lambda_w - dev * 1e-9, self.laser.lambda_w + dev * 1e-9, steps)
+            self.idler_wavelengths = np.linspace(self.laser.wavelength_pump * 2 - dev * 1e-9, self.laser.wavelength_pump * 2 + dev * 1e-9, steps)
+            self.signal_wavelengths = np.linspace(self.laser.wavelength_pump * 2 - dev * 1e-9, self.laser.wavelength_pump * 2 + dev * 1e-9, steps)
         elif isinstance(self.crystal, CrystalAPM):
             # Generate signal and idler wavelength arrays
             self.idler_wavelengths = np.linspace(self.wavelength_idler - dev * 1e-9, self.wavelength_idler + dev * 1e-9, steps)

@@ -132,7 +132,7 @@ class CrystalAPM:
             float: Phase mismatch Δk in μm⁻¹.
         """
 
-        wavelength_pump = laser.lambda_2w
+        wavelength_pump = laser.wavelength_pump
 
         if angle_pm is None:
             angle_pm = self.find_phase_matching_angle(laser, wavelength_signal, wavelength_idler)
@@ -169,7 +169,7 @@ class CrystalAPM:
             float: Phase mismatch Δk in μm⁻¹.
         """
         # Convert wavelengths to micrometers
-        wavelength_pump = laser.lambda_2w * 1e6
+        wavelength_pump = laser.wavelength_pump * 1e6
         wavelength_signal = wavelength_signal * 1e6
         wavelength_idler = wavelength_idler * 1e6
 
