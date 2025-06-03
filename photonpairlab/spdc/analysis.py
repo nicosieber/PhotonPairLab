@@ -42,26 +42,28 @@ class SPDC_Analyzer:
         signal_intensities /= np.amax(signal_intensities)
         idler_intensities /= np.amax(idler_intensities)
 
-        # Fit Gaussian to the signal marginal distribution
+        # Fit to the signal and idler marginal distribution
         # Dynamically determine the number of parameters for the fitting function
         num_params = len(signature(fitting_function).parameters) - 1  # Exclude 'x'
 
-        #p0_signal = [1, np.mean(signal_wavelengths), 1, 0]  # Initial guesses for amp, cen, wid, off 
         p0_signal = [1] * num_params  # Default initial guess for signal
         p0_idler = [1] * (num_params)   # Default initial guess for idler
         
-        # Set the second parameter (center) to the mean of idler wavelengths
+        # Set the second parameter (center) to the mean of signal and idler wavelengths
         if num_params > 1:
             p0_signal[1] = np.mean(signal_wavelengths)
             p0_idler[1] = np.mean(idler_wavelengths)
 
-        signal_fit, _ = curve_fit(fitting_function, signal_wavelengths, signal_intensities, p0=p0_signal)
-
-        # Fit Gaussian to the idler marginal distribution
-        #p0_idler = [1, np.mean(idler_wavelengths), 1, 0]  # Initial guesses for amp, cen, wid, off
+        try:
+            signal_fit, _ = curve_fit(fitting_function, signal_wavelengths, signal_intensities, p0=p0_signal)
+        except Exception as e:
+            raise RuntimeError(f"Error fitting signal data: {e}")
         
-        idler_fit, _ = curve_fit(fitting_function, idler_wavelengths, idler_intensities, p0=p0_idler)
-
+        try:
+            idler_fit, _ = curve_fit(fitting_function, idler_wavelengths, idler_intensities, p0=p0_idler)
+        except Exception as e:
+            raise RuntimeError(f"Error fitting idler data: {e}")
+        
         # Return fit parameters and data
         return signal_fit, idler_fit, (signal_wavelengths, signal_intensities), (idler_wavelengths, idler_intensities)
 
