@@ -50,15 +50,14 @@ class SPDC_Plotter:
         
         return fig, (ax1, ax2)
     
-    def plot_pump(self, font_size=12, color_map=cm.viridis):
+    def plot_result(self, key="JSA", font_size=12, color_map=cm.viridis):
         number_ticklabels = 5
 
         signal_wavelengths = self.results["SignalWavelengths"] * 1e9
         idler_wavelengths = self.results["IdlerWavelengths"] * 1e9
-        Pump = self.results["Pump"]
 
         fig, axs = plt.subplots(1, 1, sharex=True, constrained_layout=False)
-        im = axs.imshow(Pump / np.amax(Pump), 
+        im = axs.imshow(self.results[key] / np.amax(self.results[key]), 
                 cmap=color_map, 
                 extent=[signal_wavelengths.min(), signal_wavelengths.max(),
                         idler_wavelengths.min(), idler_wavelengths.max()],
@@ -67,83 +66,7 @@ class SPDC_Plotter:
         
         axs.set_xlabel("signal wavelength (nm)", fontsize=font_size)
         axs.set_ylabel("idler wavelength (nm)", fontsize=font_size)
-        axs.set_title("Pump Pulse Envelope (PPE)", fontsize=font_size)
-        axs.grid(False)
-        axs.xaxis.set_major_locator(plt.MaxNLocator(number_ticklabels))
-        axs.yaxis.set_major_locator(plt.MaxNLocator(number_ticklabels))
-        plt.gcf().set_facecolor((0.960, 0.960, 0.960))
-        
-        return fig, axs
-
-    def plot_phase(self, font_size=12, color_map=cm.viridis):
-        number_ticklabels = 5
-
-        signal_wavelengths = self.results["SignalWavelengths"] * 1e9
-        idler_wavelengths = self.results["IdlerWavelengths"] * 1e9
-        Phase = self.results["Phase"]
-
-        fig, axs = plt.subplots(1, 1, sharex=True, constrained_layout=False)
-        im = axs.imshow(Phase / np.amax(Phase), 
-                cmap=color_map, 
-                extent=[signal_wavelengths.min(), signal_wavelengths.max(),
-                        idler_wavelengths.min(), idler_wavelengths.max()],
-                origin='lower')  # or 'upper' if you want to flip y
-        im.set_interpolation("bilinear")
-        
-        axs.set_xlabel("signal wavelength (nm)", fontsize=font_size)
-        axs.set_ylabel("idler wavelength (nm)", fontsize=font_size)
-        axs.set_title("Phase Matching Function (PMF)", fontsize=font_size)
-        axs.grid(False)
-        axs.xaxis.set_major_locator(plt.MaxNLocator(number_ticklabels))
-        axs.yaxis.set_major_locator(plt.MaxNLocator(number_ticklabels))
-        plt.gcf().set_facecolor((0.960, 0.960, 0.960))
-        
-        return fig, axs
-
-    def plot_jsi(self, font_size=12, color_map=cm.viridis):
-        number_ticklabels = 5
-
-        signal_wavelengths = self.results["SignalWavelengths"] * 1e9
-        idler_wavelengths = self.results["IdlerWavelengths"] * 1e9
-        JSI = self.results["JSI"]
-
-        fig, axs = plt.subplots(1, 1, sharex=True, constrained_layout=False)
-        im = axs.imshow(JSI / np.amax(JSI), 
-                cmap=color_map, 
-                extent=[signal_wavelengths.min(), signal_wavelengths.max(),
-                        idler_wavelengths.min(), idler_wavelengths.max()],
-                origin='lower')  # or 'upper' if you want to flip y
-
-        im.set_interpolation("bilinear")
-        
-        axs.set_xlabel("signal wavelength (nm)", fontsize=font_size)
-        axs.set_ylabel("idler wavelength (nm)", fontsize=font_size)
-        axs.set_title("Joint Spectral Intensity (JSI)", fontsize=font_size)
-        axs.grid(False)
-        axs.xaxis.set_major_locator(plt.MaxNLocator(number_ticklabels))
-        axs.yaxis.set_major_locator(plt.MaxNLocator(number_ticklabels))
-        plt.gcf().set_facecolor((0.960, 0.960, 0.960))
-        
-        return fig, axs
-
-    def plot_jsa(self, font_size=12, color_map=cm.viridis):
-        number_ticklabels = 5
-
-        signal_wavelengths = self.results["SignalWavelengths"] * 1e9
-        idler_wavelengths = self.results["IdlerWavelengths"] * 1e9
-        JSA = self.results["JSA"]
-
-        fig, axs = plt.subplots(1, 1, sharex=True, constrained_layout=False)
-        im = axs.imshow(JSA / np.amax(JSA), 
-                cmap=color_map, 
-                extent=[signal_wavelengths.min(), signal_wavelengths.max(),
-                        idler_wavelengths.min(), idler_wavelengths.max()],
-                origin='lower')  # or 'upper' if you want to flip y
-        im.set_interpolation("bilinear")
-        
-        axs.set_xlabel("signal wavelength (nm)", fontsize=font_size)
-        axs.set_ylabel("idler wavelength (nm)", fontsize=font_size)
-        axs.set_title("Joint Spectral Amplitude (JSA)", fontsize=font_size)
+  
         axs.grid(False)
         axs.xaxis.set_major_locator(plt.MaxNLocator(number_ticklabels))
         axs.yaxis.set_major_locator(plt.MaxNLocator(number_ticklabels))

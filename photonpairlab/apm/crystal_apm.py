@@ -202,7 +202,6 @@ class CrystalAPM:
         # If angle is not given, calculate phase matching angle
         if angle_pm is None:
             angle_pm = self.find_phase_matching_angle(laser, wavelength_signal, wavelength_idler)
-        print(f"Phase matching angle: {angle_pm}°")
         # Use the delta_k method to calculate Δk
         return self.delta_k(angle_pm, laser, wavelength_signal, wavelength_idler)
 

@@ -42,7 +42,7 @@ class SPDC_Analyzer:
         idler_intensities /= np.amax(idler_intensities)
 
         # Fit Gaussian to the signal marginal distribution
-        p0_signal = [1, np.mean(signal_wavelengths), 1, 0]  # Initial guesses for amp, cen, wid, off
+        p0_signal = [1, np.mean(signal_wavelengths), 1, 0]  # Initial guesses for amp, cen, wid, off 
         signal_fit, _ = curve_fit(gaussian, signal_wavelengths, signal_intensities, p0=p0_signal)
 
         # Fit Gaussian to the idler marginal distribution
