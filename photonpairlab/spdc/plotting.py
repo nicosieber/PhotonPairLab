@@ -2,14 +2,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm
 
-from photonpairlab.spdc.utils import gaussian, linear
+from photonpairlab.spdc.utils import *
 from photonpairlab.spdc.analysis import SPDC_Analyzer
 
 class SPDC_Plotter:
     def __init__(self, results):
         self.results = results
     
-    def plot_schmidt_coefficients(self, font_size=12):
+    def plot_schmidt_coefficients(self, fitting_function=gaussian,font_size=12):
         # Schmidt coefficients
         # Analyze the results
         analyzer = SPDC_Analyzer(self.results)
@@ -28,16 +28,16 @@ class SPDC_Plotter:
         # Create subplot for fits and plots for idler and signal
         ax2 = fig.add_subplot(212)
         # Get the signal and idler fits
-        signal_fit, idler_fit, (signal_wavelenghts, signal_intensities), (idler_wavelengths, idler_intensities) = analyzer.get_signal_idler_fits()
+        signal_fit, idler_fit, (signal_wavelenghts, signal_intensities), (idler_wavelengths, idler_intensities) = analyzer.get_signal_idler_fits(fitting_function)
 
         # Fit and plot the signal data
         ax2.plot(signal_wavelenghts, signal_intensities, "bo", markersize=4)
         # Use curve_fit to fit the Gaussian function to the data
-        ax2.plot(signal_wavelenghts, gaussian(signal_wavelenghts, *signal_fit), linestyle="--", color="orange")
+        ax2.plot(signal_wavelenghts, fitting_function(signal_wavelenghts, *signal_fit), linestyle="--", color="orange")
         # Fit and plot the idler data
         ax2.plot(idler_wavelengths, idler_intensities, "r^", markersize=4)
         # Fit the idler data using curve_fit
-        ax2.plot(idler_wavelengths, gaussian(idler_wavelengths, *idler_fit), linestyle="--", color="green")
+        ax2.plot(idler_wavelengths, fitting_function(idler_wavelengths, *idler_fit), linestyle="--", color="green")
 
         # Formatting the plot
         ax2.grid(True)

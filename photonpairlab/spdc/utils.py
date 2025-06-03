@@ -17,6 +17,22 @@ def gaussian(x, amp, cen, wid, off):
     """
     return amp * np.exp(-(x - cen) ** 2 / wid) + off
 
+def sinc(x, amp, cen, wid, off):
+    """
+    Computes a sinc function.
+
+    Parameters:
+        x (float or ndarray): The input value(s) where the sinc function is evaluated.
+        amp (float): The amplitude of the sinc peak.
+        cen (float): The center position of the sinc peak.
+        wid (float): The width (scaling factor) of the sinc function.
+        off (float): The offset added to the sinc function.
+
+    Returns:
+        float or ndarray: The computed value(s) of the sinc function at the given input.
+    """
+    return amp * np.sinc((x - cen) / wid) + off
+
 def linear(x, m, b):
     """
     Computes a linear function.
