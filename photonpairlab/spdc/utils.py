@@ -185,13 +185,25 @@ def compute_cross_correlation(rho1_temporal, rho2_temporal):
     P_tau_cross = []
 
     for t in t_vals:
+        """
+        For each time delay t, extract the overlapping submatrices from the two temporal density matrices.
+        The slicing ensures that only the *common overlapping region* between the two matrices is used:
+
+        - When t > 0, we delay rho1_temporal forward by removing its first t rows/columns,
+        and trim rho2_temporal by removing its last t rows/columns to match.
+        - When t < 0, we delay rho2_temporal forward (opposite direction), and trim rho1_temporal accordingly.
+
+        This avoids artificial wraparound (as would happen with np.roll) and ensures that
+        the overlap is computed only where the two wavepackets truly coincide in time,
+        mimicking the physical behavior of delayed wave interference at a beamsplitter.
+        """
         if t >= 0:
             A = rho1_temporal[t:, t:]
             B = rho2_temporal[:-t or None, :-t or None]  # handles k=0
         else:
             A = rho1_temporal[:t or None, :t or None]
             B = rho2_temporal[-t:, -t:]
-
+    
         # Only proceed if A and B have the same shape and nonzero size
         if A.shape == B.shape and A.size > 0:
             prob_cross = compute_HOM_probability(A, B) # Use HOM probability calculation
