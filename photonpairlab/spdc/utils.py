@@ -153,6 +153,21 @@ def compute_purity_and_visibility(rho):
     visibility = (P_max - P_min) / P_max
     return purity, visibility
 
+def compute_HOM_probability(rho1, rho2, reflection=0.5, transmission=0.5):
+    """
+    Computes the HOM interference probability based on the overlap of two modes 
+    at a beamsplitter with given reflection and transmission coefficients.
+
+    Args:
+        overlap (float): Overlap integral between two modes.
+        reflection (float): Reflection coefficient (default is 0.5).
+        transmission (float): Transmission coefficient (default is 0.5).
+
+    Returns:
+        float: HOM interference probability.
+    """
+    overlap = np.sum(np.conj(rho1) * rho2)
+    return 0.5 * (1 - 2 * reflection * transmission * np.abs(overlap))
 
 def compute_cross_correlation(rho1_temporal, rho2_temporal):
     """
@@ -179,8 +194,7 @@ def compute_cross_correlation(rho1_temporal, rho2_temporal):
 
         # Only proceed if A and B have the same shape and nonzero size
         if A.shape == B.shape and A.size > 0:
-            overlap = np.sum(np.conj(A) * B)
-            prob_cross = 0.5 * (1 - np.abs(overlap))
+            prob_cross = compute_HOM_probability(A, B) # Use HOM probability calculation
             P_tau_cross.append(prob_cross)
         else:
             P_tau_cross.append(0.5)  # fallback to no interference

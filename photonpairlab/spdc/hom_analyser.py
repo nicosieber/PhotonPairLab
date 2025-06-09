@@ -68,8 +68,8 @@ class HOMAnalyzer:
         Returns:
             tuple: Temporal density matrices for mode 1 and mode 2.
         """
-        rho1_temporal = fftshift(fft2(fftshift(rho1)))
-        rho2_temporal = fftshift(fft2(fftshift(rho2)))
+        rho1_temporal = convert_to_time_domain(rho1)
+        rho2_temporal = convert_to_time_domain(rho2)
 
         # Compute cross-correlation probabilities
         P_tau_cross, t_values = compute_cross_correlation(rho1_temporal, rho2_temporal)

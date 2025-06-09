@@ -27,7 +27,12 @@ The codebase is structured using well-defined classes:
   - `base_laser`: A base class containing shared functionality, such as wavelength and utility methods for bandwidth and pulse width conversions.
   - `pulsed_laser`: Represents pulsed lasers, allowing for the calculation of bandwidth from pulse duration and vice versa.
   - `cw_laser`: Represents continuous-wave lasers, where the bandwidth is directly specified.
-* `spdc`: Handles the simulation, analysis, and visualization of SPDC processes, including computing the JSA and related quantities.
+* `spdc`: Handles the simulation, analysis, and visualization of SPDC processes, including computing the JSA and related quantities. This module includes:
+  - `simulation`: Provides tools for simulating SPDC processes, including generating the Joint Spectral Amplitude (JSA) and related quantities.
+  - `spectral_analyzer`: Contains methods for analyzing spectral properties, such as signal and idler peaks, Schmidt decomposition, and purity calculations.
+  - `hom_analyzer`: Enables the computation of Hong-Ou-Mandel (HOM) interference, including cross-correlation and autocorrelation probabilities.
+  - `plotting`: Provides visualization tools for SPDC-related quantities, such as the JSA, Schmidt coefficients, and HOM dips.
+  - `utils`: Includes utility functions for interpolation, matrix manipulation, and general-purpose calculations used across the SPDC module.
 
 This separation makes the code easy to read, maintain, and expand.
 
