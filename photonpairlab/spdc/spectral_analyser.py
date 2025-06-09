@@ -1,12 +1,13 @@
 import numpy as np
-from scipy.optimize import curve_fit
+from scipy.optimize import curve_fit, least_squares
 from inspect import signature
 
 from photonpairlab.spdc.utils import *
 
-class SPDC_Analyzer:
+class SpectralAnalyzer:
     def __init__(self, results):
         self.results = results
+
 
     def schmidt_decomposition(self):
         # Perform Schmidt decomposition (reuse existing logic)

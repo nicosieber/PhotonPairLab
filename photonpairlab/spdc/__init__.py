@@ -1,3 +1,4 @@
 from .simulation import SPDC_Simulation
-from .analysis import SPDC_Analyzer
+from .spectral_analyser import SpectralAnalyzer
+from .hom_analyser import HOMAnalyzer
 from .plotting import SPDC_Plotter

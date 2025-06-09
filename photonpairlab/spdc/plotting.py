@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 
 from photonpairlab.spdc.utils import *
-from photonpairlab.spdc.analysis import SPDC_Analyzer
+from photonpairlab.spdc.spectral_analyser import SpectralAnalyzer
 
 class SPDC_Plotter:
     def __init__(self, results):
@@ -12,7 +12,7 @@ class SPDC_Plotter:
     def plot_schmidt_coefficients(self, fitting_function=gaussian,font_size=12):
         # Schmidt coefficients
         # Analyze the results
-        analyzer = SPDC_Analyzer(self.results)
+        analyzer = SpectralAnalyzer(self.results)
 
         # Perform Schmidt decomposition
         s_vals, Purity, _ = analyzer.schmidt_decomposition()

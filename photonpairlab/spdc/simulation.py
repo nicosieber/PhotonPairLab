@@ -1,5 +1,5 @@
 import numpy as np
-from photonpairlab.spdc.analysis import SPDC_Analyzer
+from photonpairlab.spdc.spectral_analyser import SpectralAnalyzer
 from photonpairlab.apm.crystal_apm import CrystalAPM
 from photonpairlab.qpm.crystal_qpm import CrystalQPM
 
@@ -159,7 +159,8 @@ class SPDC_Simulation:
             "K": None,
             "SignalWavelengths": self.signal_wavelengths,
             "IdlerWavelengths": self.idler_wavelengths,
-            "dev": dev
+            "dev": dev,
+            "c": self.laser.c
         }
 
         return self.results
