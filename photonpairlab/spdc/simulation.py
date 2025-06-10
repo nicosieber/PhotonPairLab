@@ -5,12 +5,16 @@ from photonpairlab.qpm.crystal_qpm import CrystalQPM
 
 
 class SPDC_Simulation:
-    def __init__(self, crystal, laser, wavelength_signal=None, wavelength_idler=None):
+    def __init__(self, crystal, laser, wavelength_signal=None, wavelength_idler=None, wavelength_signal_range = [None, None], wavelength_idler_range = [None, None]):
         # Initialize the SPDC simulation with a crystal and laser object.
         self.crystal = crystal
         self.laser = laser
         self.wavelength_signal = wavelength_signal
+        self.wavelength_signal_start = wavelength_signal_range[0]
+        self.wavelength_signal_end = wavelength_signal_range[1]
         self.wavelength_idler = wavelength_idler
+        self.wavelength_idler_start = wavelength_idler_range[0]
+        self.wavelength_idler_end = wavelength_idler_range[1]
         # Initialize other parameters
         self.initialize_parameters()
     
@@ -119,16 +123,21 @@ class SPDC_Simulation:
         Raises:
             ValueError: If the crystal type is unsupported for SPDC simulation.
         """
-        if isinstance(self.crystal, CrystalQPM):
-            # Generate signal and idler wavelength arrays
-            self.idler_wavelengths = np.linspace(self.laser.wavelength_pump * 2 - dev * 1e-9, self.laser.wavelength_pump * 2 + dev * 1e-9, steps)
-            self.signal_wavelengths = np.linspace(self.laser.wavelength_pump * 2 - dev * 1e-9, self.laser.wavelength_pump * 2 + dev * 1e-9, steps)
-        elif isinstance(self.crystal, CrystalAPM):
-            # Generate signal and idler wavelength arrays
-            self.idler_wavelengths = np.linspace(self.wavelength_idler - dev * 1e-9, self.wavelength_idler + dev * 1e-9, steps)
-            self.signal_wavelengths = np.linspace(self.wavelength_signal - dev * 1e-9, self.wavelength_signal + dev * 1e-9, steps)
+        if self.wavelength_signal_start is None and self.wavelength_signal_end is None and self.wavelength_idler_start is None and self.wavelength_idler_end is None:
+            if isinstance(self.crystal, CrystalQPM):
+                # Generate signal and idler wavelength arrays
+                self.idler_wavelengths = np.linspace(self.laser.wavelength_pump * 2 - dev * 1e-9, self.laser.wavelength_pump * 2 + dev * 1e-9, steps)
+                self.signal_wavelengths = np.linspace(self.laser.wavelength_pump * 2 - dev * 1e-9, self.laser.wavelength_pump * 2 + dev * 1e-9, steps)
+            elif isinstance(self.crystal, CrystalAPM):
+                # Generate signal and idler wavelength arrays
+                self.idler_wavelengths = np.linspace(self.wavelength_idler - dev * 1e-9, self.wavelength_idler + dev * 1e-9, steps)
+                self.signal_wavelengths = np.linspace(self.wavelength_signal - dev * 1e-9, self.wavelength_signal + dev * 1e-9, steps)
+            else:
+                raise ValueError("Unsupported crystal type for SPDC simulation") 
         else:
-            raise ValueError("Unsupported crystal type for SPDC simulation") 
+            # Generate signal and idler wavelength arrays based on provided ranges
+            self.idler_wavelengths = np.linspace(self.wavelength_idler_start, self.wavelength_idler_end, steps)
+            self.signal_wavelengths = np.linspace(self.wavelength_signal_start, self.wavelength_signal_end, steps)
            
         # Precompute constants
         fs = 2 * np.pi * self.laser.c / self.signal_wavelengths[:, None]  # Signal frequencies (column vector)

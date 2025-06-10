@@ -79,6 +79,20 @@ class HOMAnalyzer:
         results1 = self.results_list[0]
         results2 = self.results_list[1]
 
+        # Check if signal wavelengths match
+        try:
+            if not np.array_equal(results1["SignalWavelengths"], results2["SignalWavelengths"]):
+                raise ValueError("Signal wavelengths for results1 and results2 do not match.")
+        except KeyError as e:
+            raise KeyError(f"Missing key in results: {e}")
+
+        # Check if idler wavelengths match
+        try:
+            if not np.array_equal(results1["IdlerWavelengths"], results2["IdlerWavelengths"]):
+                raise ValueError("Idler wavelengths for results1 and results2 do not match.")
+        except KeyError as e:
+            raise KeyError(f"Missing key in results: {e}")
+
         if mode1 == mode2 == "signal":
             """
             Handle the case where both modes are signal.
