@@ -255,15 +255,5 @@ def rescale_probabilities(P_tau, visibility):
     P_max = 0.5
     return P_min + (P_max - P_min) * P_tau_rescaled
 
-def apply_2d_window(matrix, window_type="hann"):
-    from scipy.signal.windows import hann, gaussian
 
-    Nx, Ny = matrix.shape
-    if window_type == "hann":
-        w = np.outer(hann(Nx), hann(Ny))
-    elif window_type == "gaussian":
-        w = np.outer(gaussian(Nx, Nx // 5), gaussian(Ny, Ny // 5))
-    else:
-        raise ValueError("Unknown window type.")
-    return matrix * w
  

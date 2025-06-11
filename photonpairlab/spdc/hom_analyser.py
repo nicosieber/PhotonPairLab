@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.optimize import curve_fit, least_squares
+from scipy.interpolate import interp1d
 from inspect import signature
 
 from photonpairlab.spdc.utils import *
@@ -150,4 +151,3 @@ class HOMAnalyzer:
             "visibility1": visibility1,
             "visibility2": visibility2,
         }
-
