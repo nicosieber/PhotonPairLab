@@ -92,7 +92,6 @@ def linear_intersection_coordinates(m1, b1, m2, b2):
 def interpolate_matrix(matrix, pad_factor):
     
     # --- Zero-padding for interpolation ---
-    pad_factor = 10  # Increase resolution
     original_shape = matrix.shape
     pad_x = (pad_factor - 1) * original_shape[0] // 2
     pad_y = (pad_factor - 1) * original_shape[1] // 2
@@ -256,4 +255,15 @@ def rescale_probabilities(P_tau, visibility):
     P_max = 0.5
     return P_min + (P_max - P_min) * P_tau_rescaled
 
+def apply_2d_window(matrix, window_type="hann"):
+    from scipy.signal.windows import hann, gaussian
+
+    Nx, Ny = matrix.shape
+    if window_type == "hann":
+        w = np.outer(hann(Nx), hann(Ny))
+    elif window_type == "gaussian":
+        w = np.outer(gaussian(Nx, Nx // 5), gaussian(Ny, Ny // 5))
+    else:
+        raise ValueError("Unknown window type.")
+    return matrix * w
  

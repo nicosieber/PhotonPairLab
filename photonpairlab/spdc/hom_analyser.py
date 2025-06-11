@@ -29,7 +29,7 @@ class HOMAnalyzer:
             raise IndexError(f"Invalid results_index: {results_index}. Only {len(self.results_list)} results available.")
 
         results = self.results_list[results_index]
-        JSA = interpolate_matrix(results["JSA"], pad_factor=10)
+        JSA = results["JSA"]
 
         if mode == "signal":
             rho = JSA @ JSA.T.conj()
