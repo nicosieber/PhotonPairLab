@@ -50,15 +50,22 @@ class SPDC_Plotter:
         
         return fig, (ax1, ax2)
     
-    def plot_result(self, key="JSA", font_size=12, color_map=cm.viridis):
+    def plot_result(self, key="JSA", fig=None, ax=None, font_size=12, color_map=cm.viridis):
         number_ticklabels = 5
 
         signal_wavelengths = self.results["SignalWavelengths"] * 1e9
         idler_wavelengths = self.results["IdlerWavelengths"] * 1e9
 
-        fig, axs = plt.subplots(1, 1, sharex=True, constrained_layout=False)
-        im = axs.imshow(self.results[key] / np.amax(self.results[key]), 
-                cmap=color_map, 
+        if fig is None and ax is None:
+            fig, axs = plt.subplots(1, 1, sharex=True, constrained_layout=False)
+        elif fig is not None and ax is not None:
+            axs = ax
+            fig = fig
+        else:
+            raise ValueError("Both fig and ax must be either None or provided together.")
+
+        im = axs.imshow(self.results[key] / np.amax(self.results[key]),
+                cmap=color_map,
                 extent=[signal_wavelengths.min(), signal_wavelengths.max(),
                         idler_wavelengths.min(), idler_wavelengths.max()],
                 origin='lower')  # or 'upper' if you want to flip y
@@ -70,6 +77,6 @@ class SPDC_Plotter:
         axs.grid(False)
         axs.xaxis.set_major_locator(plt.MaxNLocator(number_ticklabels))
         axs.yaxis.set_major_locator(plt.MaxNLocator(number_ticklabels))
-        plt.gcf().set_facecolor((0.960, 0.960, 0.960))
+        #plt.gcf().set_facecolor((0.960, 0.960, 0.960))
         
         return fig, axs
