@@ -15,7 +15,7 @@ class HOMAnalyzer:
         """
         self.results_list = list(results)
 
-    def get_reduced_density_matrix(self, mode="signal", results_index=0):
+    def get_reduced_density_matrix(self, mode="signal", results_index=0, pad_factor=1):
         """
         Computes the reduced density matrix from the Joint Spectral Amplitude (JSA) data.
 
@@ -30,7 +30,7 @@ class HOMAnalyzer:
             raise IndexError(f"Invalid results_index: {results_index}. Only {len(self.results_list)} results available.")
 
         results = self.results_list[results_index]
-        JSA = results["JSA"]
+        JSA = interpolate_matrix(results["JSA"], pad_factor=pad_factor)
 
         if mode == "signal":
             rho = JSA @ JSA.T.conj()
@@ -42,7 +42,7 @@ class HOMAnalyzer:
         rho /= np.trace(rho)  # Normalize trace to 1
         return rho, JSA
     
-    def compute_two_mode_HOM(self, mode1="signal", mode2="signal"):
+    def compute_two_mode_HOM(self, mode1="signal", mode2="signal", pad_factor=1):
         """
         Computes the two-mode HOM interference visibility.
 
@@ -52,8 +52,8 @@ class HOMAnalyzer:
         if len(self.results_list) < 2:
             raise ValueError("At least two results are required to compute two-mode HOM interference.")
 
-        rho1, padded_jsa = self.get_reduced_density_matrix(mode=mode1, results_index=0)
-        rho2, padded_jsa = self.get_reduced_density_matrix(mode=mode2, results_index=1)
+        rho1, padded_jsa = self.get_reduced_density_matrix(mode=mode1, results_index=0, pad_factor=pad_factor)
+        rho2, padded_jsa = self.get_reduced_density_matrix(mode=mode2, results_index=1, pad_factor=pad_factor)
 
         # Compute purity and visibility for both modes
         _, visibility1 = compute_purity_and_visibility(rho1)
