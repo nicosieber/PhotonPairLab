@@ -44,6 +44,7 @@ This project is a work in progress, and while I strive for accuracy, there may s
 
 * Adding new materials, including their Sellmeier coefficients, temperature corrections, and thermal expansion properties.
 * Reviewing the current implementation to ensure correctness from a physics perspective.
+* Writing unittests to increase robustness of PhotonPairLab.
 * Suggesting improvements to existing features or providing feedback on better approaches.
 * Proposing or implementing new capabilities that could enhance the project's functionality.
 
