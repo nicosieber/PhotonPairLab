@@ -181,7 +181,7 @@ def compute_cross_correlation(rho1_temporal, rho2_temporal):
     """
     N = rho1_temporal.shape[0]
     t_vals = np.arange(-(N - 1), N)
-    P_tau_cross = []
+    P_t_cross = []
 
     for t in t_vals:
         """
@@ -206,11 +206,11 @@ def compute_cross_correlation(rho1_temporal, rho2_temporal):
         # Only proceed if A and B have the same shape and nonzero size
         if A.shape == B.shape and A.size > 0:
             prob_cross = compute_HOM_probability(A, B) # Use HOM probability calculation
-            P_tau_cross.append(prob_cross)
+            P_t_cross.append(prob_cross)
         else:
-            P_tau_cross.append(0.5)  # fallback to no interference
+            P_t_cross.append(0.5)  # fallback to no interference
 
-    return np.array(P_tau_cross), t_vals
+    return np.array(P_t_cross), t_vals
 
 
 def compute_autocorrelation(rho_temporal):
@@ -228,32 +228,32 @@ def compute_autocorrelation(rho_temporal):
     N = rho_temporal.shape[0]
     t_vals = np.arange(-(N - 1), N)
 
-    P_tau = []
+    P_t = []
     for t in t_vals:
         d0 = np.diag(rho_temporal, k=0)
         dk = np.diag(rho_temporal, k=t)
         length = min(len(d0), len(dk))
         overlap = np.sum(np.conj(d0[:length]) * dk[:length])
         prob = 0.5 * (1 - np.abs(overlap)**2)
-        P_tau.append(prob)
+        P_t.append(prob)
 
-    return np.array(P_tau), t_vals
+    return np.array(P_t), t_vals
 
-def rescale_probabilities(P_tau, visibility):
+def rescale_probabilities(P_t, visibility):
     """
     Rescales probabilities to match the physical range.
 
     Args:
-        P_tau (numpy.ndarray): The raw probabilities.
+        P_t (numpy.ndarray): The raw probabilities.
         visibility (float): The visibility to use for scaling.
 
     Returns:
         numpy.ndarray: Rescaled probabilities.
     """
-    P_tau_rescaled = (P_tau - np.min(P_tau)) / (np.max(P_tau) - np.min(P_tau))  # normalize to [0,1]
+    P_t_rescaled = (P_t - np.min(P_t)) / (np.max(P_t) - np.min(P_t))  # normalize to [0,1]
     P_min = 0.5 * (1 - visibility)
     P_max = 0.5
-    return P_min + (P_max - P_min) * P_tau_rescaled
+    return P_min + (P_max - P_min) * P_t_rescaled
 
 
  

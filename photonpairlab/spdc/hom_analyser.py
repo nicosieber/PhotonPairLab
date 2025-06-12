@@ -73,9 +73,9 @@ class HOMAnalyzer:
         rho2_temporal = convert_to_time_domain(rho2)
 
         # Compute cross-correlation probabilities
-        P_tau_cross, t_values = compute_cross_correlation(rho1_temporal, rho2_temporal)
+        P_t, t_values = compute_cross_correlation(rho1_temporal, rho2_temporal)
         # Rescale probabilities
-        P_tau_rescaled_cross = rescale_probabilities(P_tau_cross, visibility1)
+        P_t_rescaled = rescale_probabilities(P_t, visibility1)
         
         results1 = self.results_list[0]
         results2 = self.results_list[1]
@@ -96,7 +96,7 @@ class HOMAnalyzer:
 
         if mode1 == mode2 == "signal":
             """
-            Handle the case where both modes are signal.
+            Handles the case where both modes are signal.
             """
             wavelengths_1 = np.array(results1["SignalWavelengths"])
             wavelengths_2 = np.array(results2["SignalWavelengths"])
@@ -108,7 +108,7 @@ class HOMAnalyzer:
             delta_f_avg = 0.5 * (delta_f_1 + delta_f_2)
         elif mode1 == mode2 == "idler":
             """
-            Handle the case where both modes are idler.
+            Handles the case where both modes are idler.
             """
             wavelengths_1 = np.array(results1["IdlerWavelengths"])
             wavelengths_2 = np.array(results2["IdlerWavelengths"])
@@ -120,7 +120,7 @@ class HOMAnalyzer:
             delta_f_avg = 0.5 * (delta_f_1 + delta_f_2)
         else:
             """
-            Handle cross-mode cases: signal-idler or idler-signal.
+            Handles cross-mode cases: signal-idler or idler-signal.
             """
             if mode1 == "signal" and mode2 == "idler":
                 wavelengths_1 = np.array(results1["SignalWavelengths"])
@@ -146,7 +146,7 @@ class HOMAnalyzer:
         
         # Return results as a dictionary
         return {
-            "P_tau_rescaled_cross": P_tau_rescaled_cross,
+            "P_t_rescaled": P_t_rescaled,
             "time_axis": time_axis_fs,
             "visibility1": visibility1,
             "visibility2": visibility2,

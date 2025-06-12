@@ -72,7 +72,7 @@ class SPDC_Simulation:
         self.xi_eff = np.flip(self.crystal.poling_pattern.astype("float64"))
         self.z = self.crystal.z
     
-    def compute_phase_integral(self,z, xi_eff, DeltaK):
+    def phase_matching_function(self,z, xi_eff, DeltaK):
         """
         Compute the phase integral for a given set of parameters.
 
@@ -98,6 +98,19 @@ class SPDC_Simulation:
         """
         y = xi_eff[:, None, None] * np.exp(-1j * DeltaK[None, :, :] * z[:, None, None])
         return np.trapz(y, z, axis=0)
+    
+    def pump_pulse_envelope(self, fs, fi):
+        """
+        Computes the Gaussian pump spectrum for given signal and idler angular frequencies.
+
+        Args:
+            fs (np.ndarray): Signal angular frequencies (2D or broadcastable to fi).
+            fi (np.ndarray): Idler angular frequencies (2D or broadcastable to fs).
+
+        Returns:
+            np.ndarray: The Gaussian pump spectrum array.
+        """
+        return np.exp(-((fi + fs - self.omega_pump) ** 2) / (2 * self.angular_bandwidth ** 2))
     
     def run_simulation(self, steps=100, dev=5):
         """
@@ -154,14 +167,14 @@ class SPDC_Simulation:
         DeltaK = self.DeltaK_0 + DeltaK_1
         
         # Compute Pump, Phase, JSI, and JSA using vectorized operations
-        S = np.exp(-((fi + fs - self.omega_pump) ** 2) / (2 * self.angular_bandwidth ** 2))  # Gaussian pump spectrum
-        phase = self.compute_phase_integral(self.z, self.xi_eff, DeltaK)
-        Amp = S * phase
+        PPE = self.pump_pulse_envelope(fs, fi)        
+        PMF = self.phase_matching_function(self.z, self.xi_eff, DeltaK)
+        Amp = PPE * PMF
 
         self.results = {
-            "Pump": S**2,
-            "Phase": np.abs(phase) ** 2,
-            "JSI": np.abs(Amp) ** 2,
+            "Pump": PPE,
+            "Phase": np.abs(PMF),
+            "JSI": np.abs(Amp)**2,
             "JSA": np.abs(Amp),
             "SchmidtCoefficients": None,
             "Purity": None,
