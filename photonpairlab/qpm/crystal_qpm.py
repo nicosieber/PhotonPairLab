@@ -1,6 +1,7 @@
 import numpy as np
 
 from .materials_qpm import BaseMaterial
+from photonpairlab.qpm.utils import *
 
 class CrystalQPM:
     def __init__(self, coherence_length: float, crystal_length: float, T: float, w: float, material: BaseMaterial, spdc: str = "type-II"):
@@ -108,9 +109,12 @@ class CrystalQPM:
             raise ValueError(f"Unsupported SPDC type: {self.spdc}")
 
         # Compute DeltaK_0
-        DeltaK_0 = 2 * np.pi * (n_signal / wavelength_downconverted + n_idler / wavelength_downconverted - n_pump / wavelength_pump)
+        DeltaK_0 = compute_delta_k0(wavelength_pump=wavelength_pump, 
+                                    wavelength_signal=wavelength_downconverted,
+                                    wavelength_idler=wavelength_downconverted,
+                                    n_signal=n_signal, n_idler=n_idler, n_pump=n_pump)
         return (n_pump, n_signal, n_idler), (N_pump, N_signal, N_idler), DeltaK_0
-    
+
     def gtarget(self, z, L, coherence_length):
         """
         Computes a Gaussian target function based on the given parameters.
