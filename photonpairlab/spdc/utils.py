@@ -16,7 +16,8 @@ def gaussian(x, amp, cen, wid, off):
     Returns:
         float or ndarray: The computed value(s) of the Gaussian function at the given input.
     """
-    return amp * np.exp(-(x - cen) ** 2 / wid) + off
+    exponent = -(x - cen) ** 2 / wid
+    return amp * np.exp(exponent) + off
 
 def sinc(x, amp, cen, wid, off):
     """
