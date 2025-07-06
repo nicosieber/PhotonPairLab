@@ -1,2 +1,12 @@
 __pycache__/
+photonpairlab.egg-info/
+*.pyc
+*.pyo
+*.pyd
+*.pkl
+*.pklz
+*.db
+*.sqlite3
+*.log
+*.csv       
 .DS_Store
