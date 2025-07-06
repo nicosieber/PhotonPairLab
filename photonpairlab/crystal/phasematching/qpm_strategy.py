@@ -3,6 +3,8 @@ from .base_pm_strategy import PhaseMatchingStrategy
 from ..material.base_material import BaseMaterial
 from photonpairlab.laser import *
 
+from scipy.optimize import minimize_scalar
+
 class QPMPhaseMatching(PhaseMatchingStrategy):
     """
     Quasi Phase-Matching (QPM) strategy for nonlinear crystals.
@@ -39,8 +41,7 @@ class QPMPhaseMatching(PhaseMatchingStrategy):
         DeltaK_0 = self.delta_k(angle_pm, laser, wavelength_signal, wavelength_idler, T)
 
         return (n_pump, n_signal, n_idler), (N_pump, N_signal, N_idler), DeltaK_0, angle_pm
-
-
+    
 
     def generate_poling(self, crystal_length: float, 
                         T: float, 

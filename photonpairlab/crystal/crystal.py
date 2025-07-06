@@ -43,7 +43,7 @@ class Crystal:
         if pm_strategy == "quasi":
             # Placeholder until QPMPhaseMatching is ready
             #raise NotImplementedError("QPMPhaseMatching is not yet implemented.")
-            self.pm_strategy = QPMPhaseMatching(material, spdc_type=spdc_type, **kwargs)
+            self.pm_strategy = QPMPhaseMatching(material, spdc_type=spdc_type,**kwargs)
         elif pm_strategy == "angle":
             self.pm_strategy = APMPhaseMatching(material, spdc_type=spdc_type, **kwargs)
         else:

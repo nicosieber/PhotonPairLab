@@ -9,9 +9,10 @@ class PhaseMatchingStrategy:
     Provides the interface and common placeholders for all strategies.
     """
 
-    def __init__(self, material: BaseMaterial, spdc_type: str="type-II"):
+    def __init__(self, material: BaseMaterial, spdc_type: str="type-II", coherence_length: float = None):
         self.material = material
         self.spdc_type = spdc_type
+        self.coherence_length = coherence_length
 
     def get_refractive_index(self, wavelength: float, polarization: str, angle: float, T: float):
         if polarization == "o":
