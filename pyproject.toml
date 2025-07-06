@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "photonpairlab"
+version = "0.1.0"
+description = "PhotonPairLab is a Python-based simulation toolkit for modeling the generation of photon pairs via spontaneous parametric down-conversion (SPDC) in nonlinear crystals. This project is designed with a clean, modular, and object-oriented architecture, making it extensible for further development or integration into larger quantum optics simulations."
+authors = [{name="Nico Sieber", email="nico.sieber@gmx.net"}]
+dependencies = [
+    "numpy",
+    "scipy",
+    "matplotlib"
+]
+[project.urls]
+LinkedIn = "https://www.linkedin.com/in/nico-sieber-0a7204156"

@@ -1,51 +1,117 @@
 # PhotonPairLab
-## Description
-**PhotonPairLab** is a Python-based simulation toolkit for modeling the generation of photon pairs via spontaneous parametric down-conversion (SPDC) in nonlinear crystals. This project is designed with a clean, modular, and object-oriented architecture, making it extensible for further development or integration into larger quantum optics simulations.
+
+**PhotonPairLab** is a Python toolkit for simulating photon pair generation via spontaneous parametric down-conversion (SPDC) in nonlinear crystals.  
+It supports both angle phase-matching (APM) and quasi-phase-matching (QPM) using a unified, extensible object-oriented architecture.
+
+---
 
 ## Features
 
-* Object-oriented architecture with clean separation of concerns.
-* Models type-0, type-I, and type-II SPDC processes.
-* Supports both quasi-phase matching (QPM) and angle phase matching (APM) processes.
-* Visualization tools for key physical quantities, including joint spectral properties, enabling intuitive analysis and interpretation of SPDC processes.
-* Easily extendable to support different crystal types and pump configurations.
-* Includes methods for generating poling patterns for QPM crystals and constant poling structures for APM crystals.
-* Optimized phase-matching angle calculations for APM crystals using numerical minimization techniques.
-* Accurate computation of refractive indices, group indices, and phase mismatch for both QPM and APM crystals.
+- Unified `Crystal` class supporting both QPM and APM via strategy pattern
+- Modular material classes (`KTP1`, `BBO`, `BIBO`, etc.)
+- Pluggable phase-matching strategies (`QPMPhaseMatching`, `APMPhaseMatching`)
+- Simulation of joint spectral amplitude/intensity (JSA/JSI)
+- HOM dip and spectral analysis tools
+- Easily extensible for new materials and phase-matching types
+
+---
+
+## Installation
+
+Clone the repository and install with pip:
+
+```sh
+git clone https://github.com/yourusername/photonpairlab.git
+cd photonpairlab
+pip install -e .
+```
+
+---
+
+## Usage Example
+
+```python
+from photonpairlab.crystal import Crystal, KTP1, BBO
+from photonpairlab.laser import PulsedLaser
+from photonpairlab.spdc.simulation import SPDC_Simulation
+
+# Choose material and phase-matching strategy
+material = KTP1()
+crystal = Crystal(
+    crystal_length=30e-3,
+    material=material,
+    pm_strategy="quasi",  # or "angle"
+    spdc_type="type-II",
+    coherence_length=46.2e-6,
+    w=18e-6,
+    T=30
+)
+
+# Define laser
+wavelength_pump = 775e-9  # Pump wavelength in meters  
+pulse_duration = 1.7e-12  # Pulse duration in seconds
+laser = PulsedLaser(wavelength_pump, pulse_duration=pulse_duration)
+
+# Generate poling (for QPM)
+crystal.generate_poling(laser=laser, mode="periodic", wavelength_signal=1550e-9, wavelength_idler=1550e-9, resolution=5)
+
+# Run SPDC simulation
+simulation = SPDC_Simulation(crystal, laser, wavelength_signal_range=[1545e-9, 1560e-9], wavelength_idler_range=[1545e-9, 1560e-9])
+results = simulation.run_simulation(steps=100)
+```
+
+---
 
 ## Architecture Overview
 
-The codebase is structured using well-defined classes:
+```
+photonpairlab/
+│
+├── crystal/
+│   ├── materials/
+│   │   ├── base_material.py
+│   │   ├── ktp1.py
+│   │   ├── bbo.py
+│   │   └── ...
+│   ├── pmstrategy/
+│   │   ├── base_pm_strategy.py
+│   │   ├── qpm_strategy.py
+│   │   ├── apm_strategy.py
+│   │   └── ...
+│   ├── crystal.py
+│   └── ...
+├── spdc/
+│   ├── simulation.py
+│   ├── analysis.py
+│   └── ...
+└── ...
+```
 
-* `qpm`: Handles quasi-phase matching (QPM) processes. This module includes:
-  - `materials_qpm`: Provides models for nonlinear optical materials used in QPM, including their Sellmeier coefficients, temperature corrections, and thermal expansion properties.
-  - `crystal_qpm`: Encapsulates physical properties of QPM crystals, such as poling period, temperature, and dispersion, and provides methods for generating alternating poling patterns.
-* `apm`: Handles angle phase matching (APM) processes. This module includes:
-  - `materials_apm`: Provides models for nonlinear optical materials used in APM, including their effective refractive indices and group indices based on propagation angles.
-  - `crystal_apm`: Encapsulates physical properties of APM crystals, such as phase-matching angles, constant poling structures, and dispersion, and provides methods for generating constant poling patterns.
-* `laser`: Models the pump laser, supporting both continuous-wave (CW) and pulsed lasers. This module includes:
-  - `base_laser`: A base class containing shared functionality, such as wavelength and utility methods for bandwidth and pulse width conversions.
-  - `pulsed_laser`: Represents pulsed lasers, allowing for the calculation of bandwidth from pulse duration and vice versa.
-  - `cw_laser`: Represents continuous-wave lasers, where the bandwidth is directly specified.
-* `spdc`: Handles the simulation, analysis, and visualization of SPDC processes, including computing the JSA and related quantities. This module includes:
-  - `simulation`: Provides tools for simulating SPDC processes, including generating the Joint Spectral Amplitude (JSA) and related quantities.
-  - `spectral_analyzer`: Contains methods for analyzing spectral properties, such as signal and idler peaks, Schmidt decomposition, and purity calculations.
-  - `hom_analyzer`: Enables the computation of Hong-Ou-Mandel (HOM) interference, including cross-correlation and autocorrelation probabilities.
-  - `plotting`: Provides visualization tools for SPDC-related quantities, such as the JSA, Schmidt coefficients, and HOM dips.
-  - `utils`: Includes utility functions for interpolation, matrix manipulation, and general-purpose calculations used across the SPDC module.
+- **Materials:** All nonlinear crystal properties (refractive index, thermal expansion, etc.)
+- **Phase-Matching Strategies:** QPM and APM logic, interchangeable via the strategy pattern
+- **Crystal:** Unified interface, delegates phase-matching to the chosen strategy
+- **SPDC:** Simulation and analysis tools
 
-This separation makes the code easy to read, maintain, and expand.
+---
 
-## How to use
-For a demonstration on how to use **PhotonPairLab**, have a look at the [demo notebook](./demo.ipynb).
+## Extending
 
-## Disclaimer
-This project is a work in progress, and while I strive for accuracy, there may still be areas that need improvement or refinement. I encourage experts in the field to contribute by:
+- **Add a new material:** Create a new class in `crystal/materials/` inheriting from `BaseMaterial`.
+- **Add a new phase-matching strategy:** Create a new class in `crystal/pmstrategy/` inheriting from `PhaseMatchingStrategy`.
+- **Use your new classes** by passing them to the `Crystal` constructor.
 
-* Adding new materials, including their Sellmeier coefficients, temperature corrections, and thermal expansion properties.
-* Reviewing the current implementation to ensure correctness from a physics perspective.
-* Writing unittests to increase robustness of PhotonPairLab.
-* Suggesting improvements to existing features or providing feedback on better approaches.
-* Proposing or implementing new capabilities that could enhance the project's functionality.
+---
 
-Your expertise and contributions would be greatly appreciated to make this project more robust and reliable!
+## License
+
+MIT
+
+---
+
+## Acknowledgments
+
+PhotonPairLab is inspired by the needs of quantum optics research and is open for contributions and extensions.
+
+---
+
+**For detailed examples, see the `demo.ipynb` notebook.**
