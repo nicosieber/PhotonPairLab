@@ -1,3 +1,3 @@
-from .base_laser import BaseLaser
-from .pulsed_laser import PulsedLaser
-from .cw_laser import CWLaser
+from .base_laser import *
+from .pulsed_laser import *
+from .cw_laser import *
