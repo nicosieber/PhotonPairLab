@@ -1,16 +1,15 @@
 from .base_material import BaseMaterial  
 import numpy as np  
 
-class KTP1(BaseMaterial):
+class KTP2(BaseMaterial):
     """
     A class to encapsulate and manage material properties for nonlinear crystals.
 
     References for Sellmeier coefficients and temperature corrections:
     - Sellmeier coefficients: 
-        - y-axis: F. Konig et al., APL, 84,1644, 2004
-        - z-axis: K. Fradkin et al., APL, 74,914, 1999, https://aip.scitation.org/doi/pdf/10.1063/1.123408
+        - https://www.unitedcrystals.com/KTPProp.html
     - Temperature corrections: 
-        - Emanueli et al., App. Opt., 42, 33, 2003
+        - https://www.unitedcrystals.com/KTPProp.html
     - Thermal expansion:
         - S. Emanueli & A. Arie, App. Opt, vol. 42, No. 33 (2003)
         - No other values / references found
@@ -19,24 +18,43 @@ class KTP1(BaseMaterial):
         # Dictionary to store material properties
         self.material = {
             "sellmeier": {
-                "y": {"A": 2.09930, "B": 0.922683, "C": 0.0467695, "D": 0.0138408},
-                "z": {"A": 2.12725, "B": 1.18431, "C": 0.0514852, "D": 0.6603, "E": 100.00507, "F": 0.00968956},
+                "x": {"A": 3.0065, "B": 0.03901, "C": 0.04251, "D": 0.01327},
+                "y": {"A": 3.0333, "B": 0.04154, "C": 0.04547, "D": 0.01408},
+                "z": {"A": 3.3134, "B": 0.05694, "C": 0.05658, "D": 0.01682},
             },
             "temperature_corrections": {
-                "y": {
-                    "n1": [6.28977e-6, 6.3061e-6, -6.0629e-6, 2.6486e-6],
-                    "n2": [-0.14445e-8, 2.2244e-8, -3.5770e-8, 1.3470e-8],
-                },
-                "z": {
-                    "n1": [9.9587e-6, 9.9228e-6, -8.9603e-6, 4.1010e-6],
-                    "n2": [-1.1882e-8, 1.0459e-7, -9.8136e-8, 3.1481e-8],
-                },
+                "x": 1.1e-5,
+                "y": 1.3e-5,
+                "z": 1.6e-5,
             },
             "thermal_expansion": {
                 "z": {"alpha": 6.7e-6, "beta": 11e-9},
             },
             "biaxial": True,
         }
+
+    def is_biaxial(self):
+        """
+        Check if the crystal is biaxial.
+        Returns:
+            bool: True if the crystal is biaxial, False if uniaxial.
+        """
+        try:
+            return self.material["biaxial"]
+        except KeyError:
+            raise ValueError("Biaxial property not found in material data.")
+
+    def map_polarization_axis(self, polarization_label):
+        """
+        Map generic polarization labels to physical crystal axes.
+        For example, 'o' → 'y', 'e' → effective index along propagation.
+        """
+        if polarization_label == 'o':
+            return 'y'  # For KTP2, assume ordinary-like wave along y
+        elif polarization_label == 'e':
+            return None  # 'e' handled by n_eff, no axis
+        else:
+            return polarization_label
         
     def get_sellmeier_coefficients(self, axis):
         """
@@ -55,7 +73,8 @@ class KTP1(BaseMaterial):
             return self.material["temperature_corrections"][axis]
         except KeyError:
             return None  # Return None if no temperature corrections are available
-    
+        
+
     def refractive_index(self, wavelength, axis, temperature=25):
         """
         Calculate the refractive index of a material using the Sellmeier equation 
@@ -85,40 +104,57 @@ class KTP1(BaseMaterial):
         A = coeffs["A"]
         B = coeffs["B"]
         C = coeffs["C"]
-        D = coeffs.get("D", 0)
-        E = coeffs.get("E", 0)
-        F = coeffs.get("F", 0)
+        D = coeffs["D"]
 
         # Compute refractive index using Sellmeier equation
-        # Use the appropriate formula based on the number of coefficients
-        if E == 0 and F == 0:  # Only four coefficients
-            n_squared = A + B / (1 - C / wavelength**2) - D * wavelength**2
-        else:  # Six coefficients
-            n_squared = (
-                A
-                + B / (1 - C / wavelength**2)
-                + D / (1 - E / wavelength**2)
-                - F * wavelength**2
-            )
+        n_squared = (
+            A
+            + B / (wavelength**2 - C)
+            - D * wavelength**2
+        )
         
         n = np.sqrt(n_squared)
 
         # Apply temperature corrections if available
         try:
-            temp_coeffs = self.get_temperature_corrections(axis)
-            if temp_coeffs:
-                n1 = temp_coeffs["n1"]
-                n2 = temp_coeffs["n2"]
-                deln = (
-                    (n1[0] + n1[1] / wavelength + n1[2] / wavelength**2 + n1[3] / wavelength**3) * (temperature - 25)
-                    + (n2[0] + n2[1] / wavelength + n2[2] / wavelength**2 + n2[3] / wavelength**3) * (temperature - 25)**2
-                )
-                n += deln
+            temp_coeff = self.get_temperature_corrections(axis)
+            if temp_coeff:
+                n += temp_coeff * (temperature - 25)
         except ValueError:
             # Skip temperature correction if not available
             pass
 
         return n
+    
+    def effective_refractive_index(self, lambda_um, theta_deg=0, phi_deg=0):
+        """
+        Calculate n_eff for arbitrary propagation direction in a biaxial crystal.
+        θ: inclination from optical Z-axis (0° = along z)
+        φ: azimuthal angle in XY plane
+        """
+        
+        theta_rad = np.radians(theta_deg)
+        phi_rad = np.radians(phi_deg)
+
+        nx = self.refractive_index(lambda_um, axis="x")
+        ny = self.refractive_index(lambda_um, axis="y")
+        nz = self.refractive_index(lambda_um, axis="z")
+
+        cos_theta = np.cos(theta_rad)
+        sin_theta = np.sin(theta_rad)
+        cos_phi = np.cos(phi_rad)
+        sin_phi = np.sin(phi_rad)
+
+        n_eff_sq_inv = (
+            (cos_theta**2 * cos_phi**2) / nx**2 +
+            (cos_theta**2 * sin_phi**2) / ny**2 +
+            (sin_theta**2) / nz**2
+        )
+
+        if n_eff_sq_inv <= 0:
+            raise ValueError(f"Invalid effective index computation: 1/n² ≤ 0 for λ = {lambda_um} µm")
+
+        return np.sqrt(1 / n_eff_sq_inv)
     
     def get_thermal_expansion(self, axis):   
         """

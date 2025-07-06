@@ -1,7 +1,7 @@
 import numpy as np
-from .base_material_apm import BaseMaterialAPM
+from .base_material import BaseMaterial
 
-class BIBO(BaseMaterialAPM):
+class BIBO(BaseMaterial):
     """
     BIBO (BiB3O6) crystal with biaxial Sellmeier coefficients.
     References:
@@ -16,11 +16,21 @@ class BIBO(BaseMaterialAPM):
                 "y": {"A": 3.1690, "B": 0.0371, "C": 0.0390, "D": 0.0184},
                 "z": {"A": 3.6545, "B": 0.0512, "C": 0.0504, "D": 0.0206},
             },
+            "temperature_corrections": None, # None found so far
+            "thermal_expansion": None, # None found so far
             "biaxial": True,
         }
 
     def is_biaxial(self):
-        return self.material.get("biaxial", False)
+        """
+        Check if the crystal is biaxial.
+        Returns:
+            bool: True if the crystal is biaxial, False if uniaxial.
+        """
+        try:
+            return self.material["biaxial"]
+        except KeyError:
+            raise ValueError("Biaxial property not found in material data.")
     
     def map_polarization_axis(self, polarization_label):
         """
@@ -40,7 +50,7 @@ class BIBO(BaseMaterialAPM):
         except KeyError:
             raise ValueError(f"Sellmeier coefficients for axis '{axis}' not found.")
 
-    def refractive_index(self, lambda_um, axis):
+    def refractive_index(self, lambda_um, axis, temperature=None):
         """
         Compute n_x, n_y, or n_z based on lambda [µm] using:
         n² = A + B / (λ² - C) - D * λ²
@@ -81,3 +91,17 @@ class BIBO(BaseMaterialAPM):
             raise ValueError(f"Invalid effective index computation: 1/n² ≤ 0 for λ = {lambda_um} µm")
 
         return np.sqrt(1 / n_eff_sq_inv)
+    
+    def thermal_expansion(
+        self,
+        length, # Same for QPM and APM
+        axis, # Same for QPM and APM
+        temperature=25, # Used for QPM
+        **kwargs # Additional parameters for future extensions
+    ):
+        # Implement the thermal expansion calculation based on the selected model
+        if self.material["thermal_expansion"] is None:
+            expanded_length = length
+            return expanded_length
+        else:
+            raise NotImplementedError("Thermal expansion not implemented for BIBO.")

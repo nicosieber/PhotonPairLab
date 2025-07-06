@@ -1,7 +1,7 @@
-from .base_material_apm import BaseMaterialAPM
+from .base_material import BaseMaterial
 import numpy as np  
 
-class BBO(BaseMaterialAPM):
+class BBO(BaseMaterial):
     """
     A class to encapsulate and manage material properties for nonlinear crystals.
 
@@ -16,19 +16,10 @@ class BBO(BaseMaterialAPM):
                 "o": {"A": 2.7359, "B": 0.01878, "C": 0.01822, "D": 0.01354},
                 "e": {"A": 2.3753, "B": 0.01224, "C": 0.01667, "D": 0.01516},
             },
+            "temperature_corrections": None, # None found so far
+            "thermal_expansion": None, # None found so far
             "biaxial": False,
         }
-
-    def is_biaxial(self):
-        """
-        Check if the crystal is biaxial.
-        Returns:
-            bool: True if the crystal is biaxial, False if uniaxial.
-        """
-        try:
-            return self.material["biaxial"]
-        except KeyError:
-            raise ValueError("Biaxial property not found in material data.")
         
     def map_polarization_axis(self, polarization_label):
         return polarization_label  # 'o' and 'e' are native for uniaxial
@@ -43,7 +34,7 @@ class BBO(BaseMaterialAPM):
         except KeyError:
             raise ValueError(f"Sellmeier coefficients for axis '{axis}' not found.")
 
-    def refractive_index(self, lambda_um, axis):
+    def refractive_index(self, lambda_um, axis, temperature=None):
         """
         Calculate the refractive index for a given wavelength and axis.
 
@@ -67,3 +58,17 @@ class BBO(BaseMaterialAPM):
         return 1 / np.sqrt(
             (np.cos(theta)**2 / ne**2) + (np.sin(theta)**2 / no**2)
         )
+    
+    def thermal_expansion(
+        self,
+        length, # Same for QPM and APM
+        axis, # Same for QPM and APM
+        temperature=25, # Used for QPM
+        **kwargs # Additional parameters for future extensions
+    ):
+        # Implement the thermal expansion calculation based on the selected model
+        if self.material["thermal_expansion"] is None:
+            expanded_length = length
+            return expanded_length
+        else:
+            raise NotImplementedError("Thermal expansion not implemented for BIBO.")

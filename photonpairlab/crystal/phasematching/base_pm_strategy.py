@@ -1,0 +1,103 @@
+import numpy as np
+
+from ..material.base_material import BaseMaterial
+from photonpairlab.laser import *
+
+class PhaseMatchingStrategy:
+    """
+    Base class for phase-matching strategies (QPM, APM, ...).
+    Provides the interface and common placeholders for all strategies.
+    """
+
+    def __init__(self, material: BaseMaterial, spdc_type: str="type-II"):
+        self.material = material
+        self.spdc_type = spdc_type
+
+    def get_refractive_index(self, wavelength: float, polarization: str, angle: float, T: float):
+        if polarization == "o":
+            axis = self.material.map_polarization_axis("o")
+            return self.material.refractive_index(wavelength, axis=axis, temperature=T)
+        elif polarization == "e":
+            return self.material.effective_refractive_index(wavelength, theta_deg=angle, phi_deg=self.phi_deg)
+        else:
+            axis = self.material.map_polarization_axis(polarization)
+            return self.material.refractive_index(wavelength, axis=axis, temperature=T)
+
+    def get_group_index(self, wavelength: float, polarization: str, angle: float, T: float):
+        """
+        Returns the group index for the given wavelength, polarization, and angle.
+        """
+        if polarization == "o":
+            axis = self.material.map_polarization_axis("o")
+            # Use axis-based group index (QPM or propagation along axis)
+            return self.material.group_index(wavelength, axis=axis, temperature=T)
+        elif polarization == "e":
+            # Use angle-based group index (angle phase-matching)
+            return self.material.group_index(wavelength, theta_deg=angle, phi_deg=self.phi_deg)
+        else:
+            axis = self.material.map_polarization_axis(polarization)
+            return self.material.group_index(wavelength, axis=axis, temperature=T)
+        
+    def get_polarizations(self):
+        """
+        Return (pol_pump, pol_signal, pol_idler) for the current SPDC type.
+        """
+        if self.spdc_type == 'type-0':
+            return 'e', 'e', 'e'
+        elif self.spdc_type == 'type-I':
+            return 'e', 'o', 'o'
+        elif self.spdc_type == 'type-II':
+            return 'y', 'z', 'y'
+        elif self.spdc_type == 'type-IIeoe':
+            return 'e', 'o', 'e'
+        elif self.spdc_type == 'type-IIoeo':
+            return 'o', 'e', 'o'
+        else:
+            raise ValueError("Invalid SPDC type.")
+
+    def compute_phase_mismatch(self, *args, **kwargs):
+        """
+        Compute phase mismatch Δk for the given parameters. 
+        This method is used in the simulation.py of the spdc module.
+        """
+        raise NotImplementedError("Implement in subclass.")
+
+    def delta_k(self, angle: float, laser: BaseLaser, 
+                wavelength_signal: float, wavelength_idler: float, T: float):
+        """
+        Calculate Δk = k_p - k_s - k_i for a given angle.
+
+        Args:
+            angle_deg (float): Phase-matching angle in degrees.
+            laser (CWLaser): Laser object containing pump wavelength.
+            wavelength_signal (float): Signal wavelength in meters.
+            wavelength_idler (float): Idler wavelength in meters.
+
+        Returns:
+            float: Phase mismatch Δk in μm⁻¹.
+        """
+        # Convert wavelengths to micrometers
+        wavelength_pump = laser.wavelength_pump * 1e6
+        wavelength_signal = wavelength_signal * 1e6
+        wavelength_idler = wavelength_idler * 1e6
+
+        # Get polarization states based on SPDC type
+        polarzation_pump, polarzation_signal, polarzation_idler = self.get_polarizations()
+        
+        # Compute refractive indices
+        n_p = self.get_refractive_index(wavelength_pump, polarzation_pump, angle, T)
+        n_s = self.get_refractive_index(wavelength_signal, polarzation_signal, angle, T)
+        n_i = self.get_refractive_index(wavelength_idler, polarzation_idler, angle, T)
+
+        # Compute wavevectors
+        k_p = 2 * np.pi * n_p / wavelength_pump
+        k_s = 2 * np.pi * n_s / wavelength_signal
+        k_i = 2 * np.pi * n_i / wavelength_idler
+
+        return (k_p - k_s - k_i) * 1e6  # Δk in μm⁻¹
+
+    def generate_poling(self, *args, **kwargs):
+        """
+        Generate poling pattern (periodic, sub-coherence, constant, etc.).
+        """
+        raise NotImplementedError("Implement in subclass.")
