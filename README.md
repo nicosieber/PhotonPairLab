@@ -73,7 +73,7 @@ photonpairlab/
 │   │   ├── ktp1.py
 │   │   ├── bbo.py
 │   │   └── ...
-│   ├── pmstrategy/
+│   ├── phasematching/
 │   │   ├── base_pm_strategy.py
 │   │   ├── qpm_strategy.py
 │   │   ├── apm_strategy.py
