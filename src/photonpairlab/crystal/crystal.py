@@ -16,8 +16,8 @@ class Crystal:
     """
 
     def __init__(self, crystal_length: float, material: BaseMaterial, 
-                 coherence_length: float = None, T: float = 25.0, pm_strategy: str ="angle", 
-                 spdc_type: str ="type-IIoeo", phi_deg: float = 0, w:float = None, **kwargs):
+                 coherence_length: float | None = None, T: float = 25.0, pm_strategy: str ="angle", 
+                 spdc_type: str ="type-IIoeo", phi_deg: float = 0, w: float | None = None, **kwargs):
         """
         Initializes the Crystal with a given material and phase-matching strategy.
 
@@ -67,7 +67,7 @@ class Crystal:
 
 
     def generate_poling(self, laser: BaseLaser, mode: str='constant', 
-                        wavelength_signal: float=None, wavelength_idler:float=None, **kwargs):
+                        wavelength_signal: float | None=None, wavelength_idler:float | None=None, **kwargs):
         self.poling_pattern, self.z, self.temperature_adjusted_length = self.pm_strategy.generate_poling(self.crystal_length,
                                                                        self.T,
                                                                        mode,

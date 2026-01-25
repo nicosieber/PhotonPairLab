@@ -3,13 +3,21 @@ import numpy as np
 from ..material.base_material import BaseMaterial
 from photonpairlab.laser import *
 
+POLARIZATION_MAP: dict[str, tuple[str, str, str]] = {
+    "type-0": ("e", "e", "e"),
+    "type-I": ("e", "o", "o"),
+    "type-II": ("y", "z", "y"),
+    "type-IIeoe": ("e", "o", "e"),
+    "type-IIoeo": ("o", "e", "o"),  
+}
+
 class PhaseMatchingStrategy:
     """
     Base class for phase-matching strategies (QPM, APM, ...).
     Provides the interface and common placeholders for all strategies.
     """
 
-    def __init__(self, material: BaseMaterial, spdc_type: str="type-II", coherence_length: float = None):
+    def __init__(self, material: BaseMaterial, spdc_type: str="type-II", coherence_length: float | None = None):
         self.material = material
         self.spdc_type = spdc_type
         self.coherence_length = coherence_length
@@ -43,18 +51,10 @@ class PhaseMatchingStrategy:
         """
         Return (pol_pump, pol_signal, pol_idler) for the current SPDC type.
         """
-        if self.spdc_type == 'type-0':
-            return 'e', 'e', 'e'
-        elif self.spdc_type == 'type-I':
-            return 'e', 'o', 'o'
-        elif self.spdc_type == 'type-II':
-            return 'y', 'z', 'y'
-        elif self.spdc_type == 'type-IIeoe':
-            return 'e', 'o', 'e'
-        elif self.spdc_type == 'type-IIoeo':
-            return 'o', 'e', 'o'
-        else:
-            raise ValueError("Invalid SPDC type.")
+        try:
+            return POLARIZATION_MAP[self.spdc_type]
+        except KeyError as e:
+            raise ValueError(f"Invalid SPDC type: {self.spdc_type!r}") from e
 
     def compute_phase_mismatch(self, *args, **kwargs):
         """
@@ -63,8 +63,8 @@ class PhaseMatchingStrategy:
         """
         raise NotImplementedError("Implement in subclass.")
 
-    def delta_k(self, angle: float, laser: BaseLaser, 
-                wavelength_signal: float, wavelength_idler: float, T: float):
+    def delta_k(self, angle: float | None, laser: BaseLaser, 
+                wavelength_signal: float | None, wavelength_idler: float | None, T: float):
         """
         Calculate Δk = k_p - k_s - k_i for a given angle.
 
@@ -79,8 +79,11 @@ class PhaseMatchingStrategy:
         """
         # Convert wavelengths to micrometers
         wavelength_pump = laser.wavelength_pump * 1e6
-        wavelength_signal = wavelength_signal * 1e6
-        wavelength_idler = wavelength_idler * 1e6
+        if wavelength_signal is None or wavelength_idler is None:
+            raise ValueError("Both wavelength_signal and wavelength_idler must be provided.")
+        else:
+            wavelength_signal = wavelength_signal * 1e6
+            wavelength_idler = wavelength_idler * 1e6
 
         # Get polarization states based on SPDC type
         polarzation_pump, polarzation_signal, polarzation_idler = self.get_polarizations()

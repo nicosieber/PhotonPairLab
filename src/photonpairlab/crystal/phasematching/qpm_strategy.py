@@ -47,17 +47,24 @@ class QPMPhaseMatching(PhaseMatchingStrategy):
                         T: float, 
                         mode: str, 
                         laser: BaseLaser,
-                        wavelength_signal: float = None,
-                        wavelength_idler: float = None,
-                        coherence_length: float = None, 
-                        w: float = None,
+                        wavelength_signal: float | None = None,
+                        wavelength_idler: float | None = None,
+                        coherence_length: float | None = None, 
+                        w: float | None = None,
                         resolution: int = 5):
+        if coherence_length is None:
+            raise ValueError("coherence_length must be provided for QPM poling generation.")
+        
 
         if mode == 'periodic':
             return self._generate_periodic_poling(crystal_length, T, coherence_length, resolution)
         elif mode == 'constant':
             return self._generate_constant_poling(crystal_length, T, coherence_length, resolution)
         elif mode == 'subcoh':
+            if wavelength_signal is None or wavelength_idler is None:
+                raise ValueError("Both wavelength_signal and wavelength_idler must be provided for sub-coherence poling generation.")
+            if w is None:
+                raise ValueError("Domain width 'w' must be provided for sub-coherence poling generation.")
             return self._generate_subcoh_poling(laser, wavelength_signal, wavelength_idler, crystal_length, w, coherence_length, T)
         else:
             raise ValueError(f"Unknown poling mode: {mode}. Use 'periodic' or 'constant'.")
@@ -163,6 +170,9 @@ class QPMPhaseMatching(PhaseMatchingStrategy):
             - The generated poling pattern (`sarray`) and other computed attributes are stored 
               as class attributes for further use.
         """
+        if wavelength_signal is None or wavelength_idler is None:
+            raise ValueError("Both wavelength_signal and wavelength_idler must be provided for sub-coherence poling generation.")
+        
         
         # Proceed with the apodization algorithm using self.DeltaK_0
 
@@ -236,7 +246,7 @@ class QPMPhaseMatching(PhaseMatchingStrategy):
         cos_term = np.cos(np.pi / (coherence_length / 2) * z)
         exp_term = np.exp(1j * DeltaK * z)
         y = g * cos_term * exp_term
-        return -1j * np.trapz(y, z)
+        return -1j * np.trapezoid(y, z)
 
     def Am(self, w, altered_z, m, coherence_length, sn):
         """

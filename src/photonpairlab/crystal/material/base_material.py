@@ -1,5 +1,28 @@
+from __future__ import annotations
+
 import numpy as np
-from scipy.misc import derivative
+
+
+def derivative(f, x, dx=1e-6):
+    """
+    First derivative using central differences.
+
+    Parameters
+    ----------
+    f  : callable
+        Function f(x)
+    x  : float or np.ndarray
+        Point(s) where the derivative is evaluated
+    dx : float
+        Step size
+
+    Returns
+    -------
+    df/dx : float or np.ndarray
+    """
+    x = np.asarray(x, dtype=float)
+    return (f(x + dx) - f(x - dx)) / (2.0 * dx)
+
 
 class BaseMaterial:
     """
@@ -10,36 +33,36 @@ class BaseMaterial:
     
     def map_polarization_axis(
             self, 
-            polarization_label # for uniaxial crystals: 'o', 'e'; for biaxial crystals 'x', 'y', 'z'
+            polarization_label  # for uniaxial crystals: 'o', 'e'; for biaxial crystals 'x', 'y', 'z'
         ):
         raise NotImplementedError("This method should be implemented by subclasses.")
 
     def refractive_index(
             self,
-            wavelength, # Same for QPM and APM
-            axis, # Same for QPM and APM
-            temperature=None, # Used for QPM
-            **kwargs # Additional parameters for future extensions
+            wavelength,  # Same for QPM and APM
+            axis,  # Same for QPM and APM
+            temperature=None,  # Used for QPM
+            **kwargs  # Additional parameters for future extensions
         ):
         raise NotImplementedError
 
     def effective_refractive_index(
             self,
-            wavelength, # Same for QPM and APM
-            theta_deg=None, # Used for APM
-            phi_deg=None, # Used for APM
-            **kwargs # Additional parameters for future extensions
+            wavelength,  # Same for QPM and APM
+            theta_deg=None,  # Used for APM
+            phi_deg=None,  # Used for APM
+            **kwargs  # Additional parameters for future extensions
         ):
         raise NotImplementedError
 
     def group_index(
             self,
-            wavelength, # Same for QPM and APM
-            axis=None, # Same for QPM and APM
-            temperature=None, # Used for QPM
-            theta_deg=None, # Used for APM
-            phi_deg=None, # Used for APM
-            **kwargs # Additional parameters for future extensions
+            wavelength,  # Same for QPM and APM
+            axis=None,  # Same for QPM and APM
+            temperature=None,  # Used for QPM
+            theta_deg=None,  # Used for APM
+            phi_deg=None,  # Used for APM
+            **kwargs  # Additional parameters for future extensions
         ):
         try:
             if theta_deg is not None:
@@ -63,12 +86,11 @@ class BaseMaterial:
         except Exception as e:
             raise ValueError(f"Error in group_index: {e}")
 
-    
     def thermal_expansion(
             self,
-            length, # Same for QPM and APM
-            axis, # Same for QPM and APM
-            temperature=25, # Used for QPM
-            **kwargs # Additional parameters for future extensions
+            length,  # Same for QPM and APM
+            axis,  # Same for QPM and APM
+            temperature,  # Used for QPM
+            **kwargs  # Additional parameters for future extensions
         ):
         raise NotImplementedError
