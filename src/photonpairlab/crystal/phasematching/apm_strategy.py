@@ -17,7 +17,7 @@ class APMPhaseMatching(PhaseMatchingStrategy):
     def compute_phase_mismatch(self, laser: BaseLaser, 
                                wavelength_signal: float, 
                                wavelength_idler: float, 
-                               angle_pm: float = None,
+                               angle_pm: float | None = None,
                                T: float = 25.0):
         """
         Compute the phase mismatch Δk = k_p - k_s - k_i for a given laser and wavelengths.
@@ -51,10 +51,10 @@ class APMPhaseMatching(PhaseMatchingStrategy):
                         T: float, 
                         mode: str, 
                         laser: BaseLaser,
-                        wavelength_signal: float = None,
-                        wavelength_idler: float = None,
-                        coherence_length: float = None, 
-                        w: float = None,
+                        wavelength_signal: float | None = None,
+                        wavelength_idler: float | None = None,
+                        coherence_length: float | None = None, 
+                        w: float | None = None,
                         resolution: int = 5):
 
         if mode == "constant":
@@ -77,7 +77,7 @@ class APMPhaseMatching(PhaseMatchingStrategy):
         return poling_pattern, z, temperature_adjusted_length
 
     def find_phase_matching_angle(self, laser: BaseLaser=CWLaser(405e-9,bandwidth_wavelength=4.3e-9),
-                                  wavelength_signal: float=810e-9, wavelength_idler: float=810e-9, T: float=None):
+                                  wavelength_signal: float=810e-9, wavelength_idler: float=810e-9, T: float | None=None):
         """
         result = minimize_scalar(
             self.delta_k, bounds=(-180, 180), method='bounded',
@@ -90,7 +90,7 @@ class APMPhaseMatching(PhaseMatchingStrategy):
             method='bounded',
             #options={'xatol': 1e-5}  # Set the absolute tolerance for the solution
         )
-        phase_matching_angle = float(result.x)
+        phase_matching_angle = float(result.x) # type: ignore
 
         return phase_matching_angle
 

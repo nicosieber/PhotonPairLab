@@ -4,7 +4,6 @@ import numpy as np
 
 
 from .base_material_model import BaseMaterialModel
-from ..material_data import MaterialData
 
 
 class GeneralSellmeierThermalModel(BaseMaterialModel):
@@ -16,8 +15,6 @@ class GeneralSellmeierThermalModel(BaseMaterialModel):
       - Optional thermal expansion:
             data[axis] = {"alpha": float, "beta": float}
     """
-    def __init__(self, material: MaterialData):
-        self.material = material
 
     def is_biaxial(self):
         return self.material.biaxial

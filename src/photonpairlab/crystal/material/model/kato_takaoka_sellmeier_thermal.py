@@ -3,7 +3,6 @@ from typing import Any
 import numpy as np
 
 from .base_material_model import BaseMaterialModel
-from ..material_data import MaterialData
 
 
 class KatoTakaokaSellmeierThermalModel(BaseMaterialModel):
@@ -21,14 +20,21 @@ class KatoTakaokaSellmeierThermalModel(BaseMaterialModel):
 
     Replace _delta_n_kato_takaoka() with your exact expression.
     """
-    def __init__(self, material: MaterialData):
-        self.material = material
 
     def is_biaxial(self):
         return self.material.biaxial
 
     def map_polarization_axis(self, polarization_label):
-        return polarization_label
+        """
+        Map generic polarization labels to physical crystal axes.
+        For example, 'o' → 'y', 'e' → effective index along propagation.
+        """
+        if polarization_label == 'o':
+            return 'y'  # For KTP3, assume ordinary-like wave along y
+        elif polarization_label == 'e':
+            return None  # 'e' handled by n_eff, no axis
+        else:
+            return polarization_label
 
     def refractive_index(self, wavelength, axis, temperature=25, **kwargs):
         wl = np.asarray(wavelength, dtype=float)
@@ -43,45 +49,74 @@ class KatoTakaokaSellmeierThermalModel(BaseMaterialModel):
         C = float(coeffs["C"])
         D = float(coeffs.get("D", 0.0) or 0.0)
         E = float(coeffs.get("E", 0.0) or 0.0)
-        F = float(coeffs.get("F", 0.0) or 0.0)
+        
 
-        if (E == 0.0) and (F == 0.0):
-            n2 = A + B / (1.0 - C / wl**2) - D * wl**2
-        else:
-            n2 = (
-                A
-                + B / (1.0 - C / wl**2)
-                + D / (1.0 - E / wl**2)
-                - F * wl**2
-            )
-
-        n = np.sqrt(n2)
+        # Compute refractive index using Sellmeier equation
+        n_squared = (
+            A
+            + B / (wavelength**2 - C)
+            + D / (wavelength**2 - E)
+        )
+        
+        n = np.sqrt(n_squared)
 
         tc = self.material.temperature_corrections
         if tc is not None and isinstance(tc.data, dict) and axis in tc.data and tc.data[axis] is not None:
-            tc_axis = tc.data[axis]
-            dT = float(temperature) - 25.0
-            n = n + self._delta_n_kato_takaoka(wl, tc_axis, dT)
-
+            temp_coeffs = tc.data[axis]
+            A = temp_coeffs["A"]
+            B = temp_coeffs["B"]
+            C = temp_coeffs["C"]
+            D = temp_coeffs["D"]
+            n += (A / wavelength**3 - B / wavelength**2 + C / wavelength + D) * 1e-5 * (temperature - 25)
         return n
 
-    def _delta_n_kato_takaoka(self, wl, tc_axis: dict[str, Any], dT: float):
-        # TODO: replace this with the exact Kato & Takaoka formula you want.
-        # For now, provide a deterministic placeholder so the refactor compiles.
-        #
-        # Example placeholder: polynomial in wl times dT
-        A = float(tc_axis["A"])
-        B = float(tc_axis["B"])
-        C = float(tc_axis["C"])
-        D = float(tc_axis["D"])
-        return (A + B * wl + C * wl**2 + D * wl**3) * dT * 1e-5
 
-    def effective_refractive_index(self, wavelength, theta_deg=None, phi_deg=None, **kwargs):
-        raise NotImplementedError(
-            f"Effective refractive index not implemented for model '{type(self).__name__}'."
+    def effective_refractive_index(self, lambda_um, theta_deg, phi_deg=0):
+        """
+        Calculate n_eff for arbitrary propagation direction in a biaxial crystal.
+        θ: inclination from optical Z-axis (0° = along z)
+        φ: azimuthal angle in XY plane
+        """
+        theta_rad = np.radians(theta_deg)
+        phi_rad = np.radians(phi_deg)
+
+        nx = self.refractive_index(lambda_um, axis="x")
+        ny = self.refractive_index(lambda_um, axis="y")
+        nz = self.refractive_index(lambda_um, axis="z")
+
+        cos_theta = np.cos(theta_rad)
+        sin_theta = np.sin(theta_rad)
+        cos_phi = np.cos(phi_rad)
+        sin_phi = np.sin(phi_rad)
+
+        n_eff_sq_inv = (
+            (cos_theta**2 * cos_phi**2) / nx**2 +
+            (cos_theta**2 * sin_phi**2) / ny**2 +
+            (sin_theta**2) / nz**2
         )
 
+        if n_eff_sq_inv <= 0:
+            raise ValueError(f"Invalid effective index computation: 1/n² ≤ 0 for λ = {lambda_um} µm")
+
+        return np.sqrt(1 / n_eff_sq_inv)
+    
+    
     def thermal_expansion(self, length, axis, temperature=25, **kwargs):
+        """
+        Calculate the thermally expanded length of a material along a specified axis.
+        This method computes the expanded length of a material based on its thermal 
+        expansion coefficients and the change in temperature from a reference value 
+        (default is 25°C).
+        Parameters:
+            length (float): The original length of the material (in meters).
+            axis (str): The axis along which the thermal expansion is calculated.
+                        This should be a valid axis for which thermal expansion 
+                        coefficients are defined.
+            temperature (float, optional): The temperature at which the expansion 
+                                            is calculated (in °C). Default is 25°C.
+        Returns:
+            float: The thermally expanded length of the material (in meters).
+        """
         te = self.material.thermal_expansion
         if te is None:
             raise ValueError(f"No thermal_expansion data available for '{self.material.name}'")

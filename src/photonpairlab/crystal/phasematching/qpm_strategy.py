@@ -47,13 +47,15 @@ class QPMPhaseMatching(PhaseMatchingStrategy):
                         T: float, 
                         mode: str, 
                         laser: BaseLaser,
-                        wavelength_signal: float | None = None,
-                        wavelength_idler: float | None = None,
+                        wavelength_signal: float,
+                        wavelength_idler: float,
                         coherence_length: float | None = None, 
                         w: float | None = None,
                         resolution: int = 5):
         if coherence_length is None:
             raise ValueError("coherence_length must be provided for QPM poling generation.")
+        if wavelength_idler is None or wavelength_signal is None:
+            raise ValueError("Both wavelength_signal and wavelength_idler must be provided for QPM poling generation.")
         
 
         if mode == 'periodic':

@@ -8,13 +8,17 @@ from .model import (
     GeneralSellmeierThermalModel,
     SellmeierLinearThermalModel,
     KatoTakaokaSellmeierThermalModel,
+    BBO,
+    BIBO
 )
 
 
-QPM_MODEL_MAPPER: dict[str, Type[BaseMaterialModel]] = {
+MODEL_MAPPER: dict[str, Type[BaseMaterialModel]] = {
     "ktp1": GeneralSellmeierThermalModel,
     "ktp2": SellmeierLinearThermalModel,
     "ktp3": KatoTakaokaSellmeierThermalModel,
+    "bbo": BBO,
+    "bibo": BIBO
 }
 
 
@@ -24,10 +28,10 @@ class MaterialFactory:
         material_data = load_material_data(name)
 
         try:
-            model_cls = QPM_MODEL_MAPPER[name]
+            model_cls = MODEL_MAPPER[name]
         except KeyError as e:
             raise ValueError(
-                f"No model registered for material '{name}'. Add it to QPM_MODEL_MAPPER."
+                f"No model registered for material '{name}'. Add it to MODEL_MAPPER."
             ) from e
 
         return model_cls(material_data)

@@ -1,7 +1,9 @@
-from .base_material import BaseMaterial
 import numpy as np  
+from typing import Any, Optional
 
-class BBO(BaseMaterial):
+from .base_material_model import BaseMaterialModel
+
+class BBO(BaseMaterialModel):
     """
     A class to encapsulate and manage material properties for nonlinear crystals.
 
@@ -9,30 +11,17 @@ class BBO(BaseMaterial):
     - Sellmeier coefficients:
         - https://www.unitedcrystals.com/BBOProp.html
     """
-    def __init__(self):
-        # Dictionary to store material properties
-        self.material = {
-            "sellmeier": {
-                "o": {"A": 2.7359, "B": 0.01878, "C": 0.01822, "D": 0.01354},
-                "e": {"A": 2.3753, "B": 0.01224, "C": 0.01667, "D": 0.01516},
-            },
-            "temperature_corrections": None, # None found so far
-            "thermal_expansion": None, # None found so far
-            "biaxial": False,
-        }
-        
+    
+    def is_biaxial(self):
+        """
+        Check if the crystal is biaxial.
+        Returns:
+            bool: True if the crystal is biaxial, False if uniaxial.
+        """
+        return self.material.biaxial
     def map_polarization_axis(self, polarization_label):
         return polarization_label  # 'o' and 'e' are native for uniaxial
 
-
-    def get_sellmeier_coefficients(self, axis):
-        """
-        Retrieve the Sellmeier coefficients for a given material and axis.
-        """
-        try:
-            return self.material["sellmeier"][axis]
-        except KeyError:
-            raise ValueError(f"Sellmeier coefficients for axis '{axis}' not found.")
 
     def refractive_index(self, lambda_um, axis, temperature=None):
         """
@@ -45,7 +34,10 @@ class BBO(BaseMaterial):
         Returns:
             float: Refractive index.
         """
-        coeffs = self.get_sellmeier_coefficients(axis)
+        try:
+            coeffs: dict[str, Any] = self.material.sellmeier.data[axis]
+        except Exception as e:
+            raise ValueError(f"Sellmeier coefficients for axis '{axis}' not found in '{self.material.name}'.") from e
         l2 = lambda_um**2
         return np.sqrt(
             coeffs["A"] + coeffs["B"] / (l2 - coeffs["C"]) - coeffs["D"] * l2
@@ -67,7 +59,8 @@ class BBO(BaseMaterial):
         **kwargs # Additional parameters for future extensions
     ):
         # Implement the thermal expansion calculation based on the selected model
-        if self.material["thermal_expansion"] is None:
+
+        if self.material.thermal_expansion is None:
             expanded_length = length
             return expanded_length
         else:

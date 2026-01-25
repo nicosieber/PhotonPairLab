@@ -1,25 +1,15 @@
 import numpy as np
-from .base_material import BaseMaterial
+from typing import Any, Optional
 
-class BIBO(BaseMaterial):
+from .base_material_model import BaseMaterialModel
+
+
+class BIBO(BaseMaterialModel):
     """
     BIBO (BiB3O6) crystal with biaxial Sellmeier coefficients.
     References:
     - https://www.newlightphotonics.com/SPDC-Components/BiBO-SPDC-Crystals
     """
-
-    def __init__(self):
-        # Sellmeier coefficients for n_x, n_y, n_z
-        self.material = {
-            "sellmeier": {
-                "x": {"A": 3.0740, "B": 0.0323, "C": 0.0316, "D": 0.013376},
-                "y": {"A": 3.1690, "B": 0.0371, "C": 0.0390, "D": 0.0184},
-                "z": {"A": 3.6545, "B": 0.0512, "C": 0.0504, "D": 0.0206},
-            },
-            "temperature_corrections": None, # None found so far
-            "thermal_expansion": None, # None found so far
-            "biaxial": True,
-        }
 
     def is_biaxial(self):
         """
@@ -27,11 +17,8 @@ class BIBO(BaseMaterial):
         Returns:
             bool: True if the crystal is biaxial, False if uniaxial.
         """
-        try:
-            return self.material["biaxial"]
-        except KeyError:
-            raise ValueError("Biaxial property not found in material data.")
-    
+        return self.material.biaxial
+
     def map_polarization_axis(self, polarization_label):
         """
         Map generic polarization labels to physical crystal axes.
@@ -44,18 +31,12 @@ class BIBO(BaseMaterial):
         else:
             raise ValueError(f"Unknown polarization label: '{polarization_label}'")
 
-    def get_sellmeier_coefficients(self, axis):
-        try:
-            return self.material["sellmeier"][axis]
-        except KeyError:
-            raise ValueError(f"Sellmeier coefficients for axis '{axis}' not found.")
-
     def refractive_index(self, lambda_um, axis, temperature=None):
         """
         Compute n_x, n_y, or n_z based on lambda [µm] using:
         n² = A + B / (λ² - C) - D * λ²
         """
-        coeffs = self.get_sellmeier_coefficients(axis)
+        coeffs: dict[str, Any] = self.material.sellmeier.data[axis]
         l2 = lambda_um**2
         A, B, C, D = coeffs["A"], coeffs["B"], coeffs["C"], coeffs["D"]
         n_sq = A + B / (l2 - C) - D * l2
@@ -100,7 +81,7 @@ class BIBO(BaseMaterial):
         **kwargs # Additional parameters for future extensions
     ):
         # Implement the thermal expansion calculation based on the selected model
-        if self.material["thermal_expansion"] is None:
+        if self.material.thermal_expansion is None:
             expanded_length = length
             return expanded_length
         else:

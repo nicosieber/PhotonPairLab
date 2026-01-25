@@ -22,12 +22,12 @@ class PhaseMatchingStrategy:
         self.spdc_type = spdc_type
         self.coherence_length = coherence_length
 
-    def get_refractive_index(self, wavelength: float, polarization: str, angle: float, T: float):
+    def get_refractive_index(self, wavelength: float, polarization: str, angle: float | None, T: float | None):
         if polarization == "o":
             axis = self.material.map_polarization_axis("o")
             return self.material.refractive_index(wavelength, axis=axis, temperature=T)
         elif polarization == "e":
-            return self.material.effective_refractive_index(wavelength, theta_deg=angle, phi_deg=self.phi_deg)
+            return self.material.effective_refractive_index(wavelength, theta_deg=angle, phi_deg=self.phi_deg) # type: ignore
         else:
             axis = self.material.map_polarization_axis(polarization)
             return self.material.refractive_index(wavelength, axis=axis, temperature=T)
@@ -42,7 +42,7 @@ class PhaseMatchingStrategy:
             return self.material.group_index(wavelength, axis=axis, temperature=T)
         elif polarization == "e":
             # Use angle-based group index (angle phase-matching)
-            return self.material.group_index(wavelength, theta_deg=angle, phi_deg=self.phi_deg)
+            return self.material.group_index(wavelength, theta_deg=angle, phi_deg=self.phi_deg) # type: ignore
         else:
             axis = self.material.map_polarization_axis(polarization)
             return self.material.group_index(wavelength, axis=axis, temperature=T)
@@ -64,7 +64,7 @@ class PhaseMatchingStrategy:
         raise NotImplementedError("Implement in subclass.")
 
     def delta_k(self, angle: float | None, laser: BaseLaser, 
-                wavelength_signal: float | None, wavelength_idler: float | None, T: float):
+                wavelength_signal: float | None, wavelength_idler: float | None, T: float | None):
         """
         Calculate Δk = k_p - k_s - k_i for a given angle.
 

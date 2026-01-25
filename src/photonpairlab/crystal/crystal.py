@@ -60,25 +60,14 @@ class Crystal:
         self.temperature_adjusted_length = None
 
     def compute_phase_mismatch(self, *args, **kwargs):
+        """Calculates the phase mismatch using the selected phase-matching strategy."""
         return self.pm_strategy.compute_phase_mismatch(*args, **kwargs)
 
     def delta_k(self, *args, **kwargs):
+        """Calculates the phase mismatch using the selected phase-matching strategy."""
         return self.pm_strategy.delta_k(*args, **kwargs)
 
 
-    def generate_poling(self, laser: BaseLaser, mode: str='constant', 
-                        wavelength_signal: float | None=None, wavelength_idler:float | None=None, **kwargs):
-        self.poling_pattern, self.z, self.temperature_adjusted_length = self.pm_strategy.generate_poling(self.crystal_length,
-                                                                       self.T,
-                                                                       mode,
-                                                                       laser,
-                                                                       wavelength_signal,
-                                                                       wavelength_idler,
-                                                                       self.coherence_length,
-                                                                       self.w,
-                                                                       **kwargs)
-
-
-
-
-    
+    def generate_poling(self, laser: BaseLaser, mode: str, wavelength_signal: float, wavelength_idler:float, **kwargs):
+        """Generates the poling pattern based on the selected phase-matching strategy."""
+        self.poling_pattern, self.z, self.temperature_adjusted_length = self.pm_strategy.generate_poling(self.crystal_length, self.T, mode, laser, wavelength_signal, wavelength_idler, self.coherence_length, self.w, **kwargs)
