@@ -11,14 +11,6 @@ class BIBO(BaseMaterialModel):
     - https://www.newlightphotonics.com/SPDC-Components/BiBO-SPDC-Crystals
     """
 
-    def is_biaxial(self):
-        """
-        Check if the crystal is biaxial.
-        Returns:
-            bool: True if the crystal is biaxial, False if uniaxial.
-        """
-        return self.material.biaxial
-
     def map_polarization_axis(self, polarization_label):
         """
         Map generic polarization labels to physical crystal axes.

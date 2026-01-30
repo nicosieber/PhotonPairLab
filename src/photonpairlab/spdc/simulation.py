@@ -4,8 +4,8 @@ from photonpairlab.crystal import Crystal
 from photonpairlab.laser import BaseLaser
 
 class SPDC_Simulation:
-    def __init__(self, crystal: Crystal, laser:BaseLaser, 
-                 wavelength_signal:float=None, wavelength_idler:float=None, 
+    def __init__(self, crystal: Crystal, laser: BaseLaser, 
+                 wavelength_signal: float | None=None, wavelength_idler : float | None=None, 
                  wavelength_signal_range: list = [None, None], 
                  wavelength_idler_range: list = [None, None]):
         # Initialize the SPDC simulation with a crystal and laser object.
@@ -49,7 +49,7 @@ class SPDC_Simulation:
         # Bandwidth
         self.angular_bandwidth = self.laser.bandwidth_wavelength_to_angular_bandwidth(self.laser.bandwidth_wavelength)
         # xi_eff and z for simulation
-        self.xi_eff = np.flip(self.crystal.poling_pattern.astype("float64"))
+        self.xi_eff = np.flip(self.crystal.poling_pattern.astype("float64")) if self.crystal.poling_pattern else None
         self.z = self.crystal.z
     
     def phase_matching_function(self,z, xi_eff, DeltaK):
@@ -62,7 +62,7 @@ class SPDC_Simulation:
 
         """
         y = xi_eff[:, None, None] * np.exp(-1j * DeltaK[None, :, :] * z[:, None, None])
-        return np.trapz(y, z, axis=0)
+        return np.trapezoid(y, z, axis=0)
     
     def pump_pulse_envelope(self, fs, fi):
         """

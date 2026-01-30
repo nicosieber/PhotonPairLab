@@ -11,8 +11,10 @@ class BaseLaser:
         Args:
             wavelength (float): Central wavelength of the laser in meters (m).
         """
-        self.wavelength_pump = wavelength_pump  # Central wavelength of the pump (m)
-        self.c = 299792458  # Speed of light in meters per second (m/s)
+        self.wavelength_pump: float = wavelength_pump  # Central wavelength of the pump (m)
+        self.c: float = 299792458  # Speed of light in meters per second (m/s)
+        self.bandwidth_wavelength: float | None = None  # Bandwidth in wavelength (m)
+        self.angular_bandwidth: float | None = None  # Bandwidth in angular frequency (
 
     def bandwidth_wavelength_to_pulse_width(self, bandwidth):
         """

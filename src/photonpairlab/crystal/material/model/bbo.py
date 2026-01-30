@@ -12,13 +12,6 @@ class BBO(BaseMaterialModel):
         - https://www.unitedcrystals.com/BBOProp.html
     """
     
-    def is_biaxial(self):
-        """
-        Check if the crystal is biaxial.
-        Returns:
-            bool: True if the crystal is biaxial, False if uniaxial.
-        """
-        return self.material.biaxial
     def map_polarization_axis(self, polarization_label):
         return polarization_label  # 'o' and 'e' are native for uniaxial
 

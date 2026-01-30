@@ -11,3 +11,6 @@ class BaseMaterialModel(BaseMaterial):
     """
     def __init__(self, material: MaterialData) -> None:
         self.material = material
+
+    def is_biaxial(self):
+        return self.material.biaxial

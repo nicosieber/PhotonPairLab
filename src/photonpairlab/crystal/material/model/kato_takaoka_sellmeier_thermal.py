@@ -4,6 +4,11 @@ import numpy as np
 
 from .base_material_model import BaseMaterialModel
 
+POLARIZATION_MAP: dict[str, str | None] = {
+    "o": "y",
+    "e": None,  # 'e' handled by n_eff, no axis
+}
+
 
 class KatoTakaokaSellmeierThermalModel(BaseMaterialModel):
     """
@@ -21,20 +26,12 @@ class KatoTakaokaSellmeierThermalModel(BaseMaterialModel):
     Replace _delta_n_kato_takaoka() with your exact expression.
     """
 
-    def is_biaxial(self):
-        return self.material.biaxial
-
     def map_polarization_axis(self, polarization_label):
         """
         Map generic polarization labels to physical crystal axes.
         For example, 'o' → 'y', 'e' → effective index along propagation.
         """
-        if polarization_label == 'o':
-            return 'y'  # For KTP3, assume ordinary-like wave along y
-        elif polarization_label == 'e':
-            return None  # 'e' handled by n_eff, no axis
-        else:
-            return polarization_label
+        return POLARIZATION_MAP.get(polarization_label, polarization_label)
 
     def refractive_index(self, wavelength, axis, temperature=25, **kwargs):
         wl = np.asarray(wavelength, dtype=float)

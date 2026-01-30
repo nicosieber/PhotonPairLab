@@ -36,8 +36,8 @@ class SpectralAnalyzer:
         idler_wavelengths = self.results["IdlerWavelengths"] * 1e9  # Convert to nm
 
         # Compute marginal distributions
-        signal_intensities = np.trapz(JSI, self.results["IdlerWavelengths"], axis=1)
-        idler_intensities = np.trapz(JSI, self.results["SignalWavelengths"], axis=0)
+        signal_intensities = np.trapezoid(JSI, self.results["IdlerWavelengths"], axis=1)
+        idler_intensities = np.trapezoid(JSI, self.results["SignalWavelengths"], axis=0)
 
         # Normalize intensities
         signal_intensities /= np.amax(signal_intensities)

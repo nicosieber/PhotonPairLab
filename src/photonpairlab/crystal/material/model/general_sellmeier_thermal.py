@@ -16,9 +16,6 @@ class GeneralSellmeierThermalModel(BaseMaterialModel):
             data[axis] = {"alpha": float, "beta": float}
     """
 
-    def is_biaxial(self):
-        return self.material.biaxial
-
     def map_polarization_axis(self, polarization_label):
         # Default behavior:
         # - for uniaxial: 'o'/'e' commonly map to 'o'/'e' keys, but your JSON uses 'o' and 'e' for BBO.

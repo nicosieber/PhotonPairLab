@@ -55,9 +55,9 @@ class Crystal:
         except ValueError as e:
             raise ValueError(f"Error in thermal expansion: {e}")
 
-        self.poling_pattern = None
-        self.z = None
-        self.temperature_adjusted_length = None
+        self.poling_pattern: np.ndarray | None = None
+        self.z: np.ndarray | None = None
+        self.temperature_adjusted_length: float | None = None
 
     def compute_phase_mismatch(self, *args, **kwargs):
         """Calculates the phase mismatch using the selected phase-matching strategy."""
