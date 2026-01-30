@@ -5,6 +5,42 @@ from inspect import signature
 
 from photonpairlab.spdc.utils import *
 
+import numpy as np
+
+def hom_coincidence_from_rhos(rho1, rho2, R=0.5, T=0.5):
+    """
+    Coincidence probability for two single-photon states with density matrices rho1 and rho2.
+    Uses: Pc = R^2 + T^2 - 2RT * Re(Tr[rho1 rho2])
+    Assumes rho1, rho2 are trace-1 density matrices in the same basis.
+    """
+    overlap = np.trace(rho1 @ rho2)
+    return (R**2 + T**2) - 2 * R * T * np.real(overlap)
+
+
+def apply_delay_to_rho_freq(rho, freqs_hz, tau_s):
+    """
+    Apply time delay tau_s to a density matrix rho(f,f') in the frequency basis:
+        rho_tau(f,f') = exp(-i 2pi (f - f') tau) * rho(f,f')
+
+    freqs_hz: 1D array of frequency-bin centers (Hz), length N.
+    rho: NxN density matrix in that same bin basis.
+    """
+    f = freqs_hz.reshape(-1, 1)
+    phase = np.exp(-1j * 2*np.pi * (f - f.T) * tau_s)
+    return rho * phase
+
+
+def hom_dip_vs_delay(rho1, rho2, freqs_hz, taus_s, R=0.5, T=0.5):
+    """
+    Compute Pc(tau) using frequency-domain delay operator.
+    """
+    Pc = np.empty_like(taus_s, dtype=float)
+    for i, tau in enumerate(taus_s):
+        rho2_tau = apply_delay_to_rho_freq(rho2, freqs_hz, tau)
+        Pc[i] = hom_coincidence_from_rhos(rho1, rho2_tau, R=R, T=T)
+    return Pc
+
+
 class HOMAnalyzer:
     def __init__(self, *results):
         """
@@ -42,7 +78,65 @@ class HOMAnalyzer:
         rho /= np.trace(rho)  # Normalize trace to 1
         return rho, JSA
     
-    def compute_two_mode_HOM(self, mode1="signal", mode2="signal", pad_factor=1):
+    def compute_two_mode_HOM(self, mode1="signal", mode2="signal", pad_factor=1, taus_s=None, R=0.5, T=0.5):
+        if len(self.results_list) < 2:
+            raise ValueError("At least two results are required to compute two-mode HOM interference.")
+
+        rho1, padded_jsa = self.get_reduced_density_matrix(mode=mode1, results_index=0, pad_factor=pad_factor)
+        rho2, _         = self.get_reduced_density_matrix(mode=mode2, results_index=1, pad_factor=pad_factor)
+
+        results1 = self.results_list[0]
+        results2 = self.results_list[1]
+
+        # Choose wavelengths according to mode, and ensure they match if you require that
+        if mode1 == "signal":
+            wl1 = np.array(results1["SignalWavelengths"])
+        else:
+            wl1 = np.array(results1["IdlerWavelengths"])
+
+        if mode2 == "signal":
+            wl2 = np.array(results2["SignalWavelengths"])
+        else:
+            wl2 = np.array(results2["IdlerWavelengths"])
+
+        # If you truly require same grid, enforce it:
+        if wl1.shape != wl2.shape or not np.allclose(wl1, wl2):
+            raise ValueError("Wavelength grids do not match; resample/interpolate onto a common grid first.")
+
+        c = results1["c"]  # speed of light from your results dict
+        freqs = np.sort(c / wl1)  # Hz if wl in meters
+
+        # If you padded rho via zero padding, you should also pad freqs consistently.
+        # The *simplest* safe option: do NOT pad rho unless you also create a matching padded frequency grid.
+        # If pad_factor != 1 here, you should handle freqs padding explicitly.
+
+        N = len(freqs)
+
+        # Define delay axis if not provided:
+        if taus_s is None:
+            # A reasonable default delay range based on bandwidth and grid spacing:
+            df = (freqs[-1] - freqs[0]) / (N - 1)
+            # time window ~ 1/df; sample a few windows
+            t_max = 5 / df
+            taus_s = np.linspace(-t_max, t_max, 2*N - 1)
+
+        Pc = hom_dip_vs_delay(rho1, rho2, freqs, taus_s, R=R, T=T)
+
+        # Useful metrics
+        overlap0 = np.real(np.trace(rho1 @ rho2))
+        purity1  = np.real(np.trace(rho1 @ rho1))
+        purity2  = np.real(np.trace(rho2 @ rho2))
+
+        return {
+            "P_c": Pc,
+            "taus_s": taus_s,
+            "taus_fs": taus_s * 1e15,
+            "overlap_at_zero_delay": overlap0,
+            "purity1": purity1,
+            "purity2": purity2,
+        }
+    
+    def compute_two_mode_HOM2(self, mode1="signal", mode2="signal", pad_factor=1):
         """
         Computes the two-mode HOM interference visibility.
 
