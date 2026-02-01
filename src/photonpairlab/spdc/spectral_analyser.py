@@ -2,16 +2,17 @@ import numpy as np
 from scipy.optimize import curve_fit, least_squares
 from inspect import signature
 
-from photonpairlab.spdc.utils import *
+from photonpairlab.spdc.hom_utils import *
+from photonpairlab.spdc.spdc_results import SPDCResults
 
 class SpectralAnalyzer:
-    def __init__(self, results):
+    def __init__(self, results: SPDCResults):
         self.results = results
 
 
     def schmidt_decomposition(self):
         # Perform Schmidt decomposition (reuse existing logic)
-        JSA = self.results["JSA"]
+        JSA = self.results.JSA
         _, s_vals, _ = np.linalg.svd(JSA / np.amax(JSA), full_matrices=True)
         s_vals = s_vals / np.sqrt(np.sum(s_vals ** 2))  # Normalize
         Purity = np.sum(s_vals ** 4)
@@ -31,13 +32,13 @@ class SpectralAnalyzer:
                 - idler_data (tuple): Idler wavelengths (nm) and normalized intensities.
         """
         # Extract data from results
-        JSI = self.results["JSI"]
-        signal_wavelengths = self.results["SignalWavelengths"] * 1e9  # Convert to nm
-        idler_wavelengths = self.results["IdlerWavelengths"] * 1e9  # Convert to nm
+        JSI = self.results.JSI
+        signal_wavelengths = self.results.SignalWavelengths * 1e9  # Convert to nm
+        idler_wavelengths = self.results.IdlerWavelengths * 1e9  # Convert to nm
 
         # Compute marginal distributions
-        signal_intensities = np.trapezoid(JSI, self.results["IdlerWavelengths"], axis=1)
-        idler_intensities = np.trapezoid(JSI, self.results["SignalWavelengths"], axis=0)
+        signal_intensities = np.trapezoid(JSI, self.results.IdlerWavelengths, axis=1)
+        idler_intensities = np.trapezoid(JSI, self.results.SignalWavelengths, axis=0)
 
         # Normalize intensities
         signal_intensities /= np.amax(signal_intensities)
@@ -52,8 +53,11 @@ class SpectralAnalyzer:
         
         # Set the second parameter (center) to the mean of signal and idler wavelengths
         if num_params > 1:
-            p0_signal[1] = np.mean(signal_wavelengths)
-            p0_idler[1] = np.mean(idler_wavelengths)
+            p0_signal = np.zeros(4, dtype=float)
+            p0_idler  = np.zeros(4, dtype=float)
+
+            p0_signal[1] = np.mean(signal_wavelengths)  # OK
+            p0_idler[1]  = np.mean(idler_wavelengths)   # OK
 
         try:
             signal_fit, _ = curve_fit(fitting_function, signal_wavelengths, signal_intensities, p0=p0_signal)

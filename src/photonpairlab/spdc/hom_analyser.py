@@ -1,9 +1,7 @@
 import numpy as np
-from scipy.optimize import curve_fit, least_squares
-from scipy.interpolate import interp1d
-from inspect import signature
 
-from photonpairlab.spdc.utils import *
+from photonpairlab.spdc.hom_utils import *
+from photonpairlab.spdc.spdc_results import SPDCResults
 
 import numpy as np
 
@@ -42,7 +40,7 @@ def hom_dip_vs_delay(rho1, rho2, freqs_hz, taus_s, R=0.5, T=0.5):
 
 
 class HOMAnalyzer:
-    def __init__(self, *results):
+    def __init__(self, *results: SPDCResults):
         """
         Initializes the HOMAnalyzer class.
 
@@ -51,7 +49,7 @@ class HOMAnalyzer:
         """
         self.results_list = list(results)
 
-    def get_reduced_density_matrix(self, mode="signal", results_index=0, pad_factor=1):
+    def get_reduced_density_matrix(self, mode="signal", results_index=0):
         """
         Computes the reduced density matrix from the Joint Spectral Amplitude (JSA) data.
 
@@ -66,7 +64,7 @@ class HOMAnalyzer:
             raise IndexError(f"Invalid results_index: {results_index}. Only {len(self.results_list)} results available.")
 
         results = self.results_list[results_index]
-        JSA = interpolate_matrix(results["JSA"], pad_factor=pad_factor)
+        JSA = results.JSA
 
         if mode == "signal":
             rho = JSA @ JSA.T.conj()
@@ -78,32 +76,32 @@ class HOMAnalyzer:
         rho /= np.trace(rho)  # Normalize trace to 1
         return rho, JSA
     
-    def compute_two_mode_HOM(self, mode1="signal", mode2="signal", pad_factor=1, taus_s=None, R=0.5, T=0.5):
+    def compute_two_mode_HOM(self, mode1="signal", mode2="signal", taus_s=None, R=0.5, T=0.5):
         if len(self.results_list) < 2:
             raise ValueError("At least two results are required to compute two-mode HOM interference.")
 
-        rho1, padded_jsa = self.get_reduced_density_matrix(mode=mode1, results_index=0, pad_factor=pad_factor)
-        rho2, _         = self.get_reduced_density_matrix(mode=mode2, results_index=1, pad_factor=pad_factor)
+        rho1, padded_jsa = self.get_reduced_density_matrix(mode=mode1, results_index=0)
+        rho2, _         = self.get_reduced_density_matrix(mode=mode2, results_index=1)
 
         results1 = self.results_list[0]
         results2 = self.results_list[1]
 
         # Choose wavelengths according to mode, and ensure they match if you require that
         if mode1 == "signal":
-            wl1 = np.array(results1["SignalWavelengths"])
+            wl1 = np.array(results1.SignalWavelengths)
         else:
-            wl1 = np.array(results1["IdlerWavelengths"])
+            wl1 = np.array(results1.IdlerWavelengths)
 
         if mode2 == "signal":
-            wl2 = np.array(results2["SignalWavelengths"])
+            wl2 = np.array(results2.SignalWavelengths)
         else:
-            wl2 = np.array(results2["IdlerWavelengths"])
+            wl2 = np.array(results2.IdlerWavelengths)
 
         # If you truly require same grid, enforce it:
         if wl1.shape != wl2.shape or not np.allclose(wl1, wl2):
             raise ValueError("Wavelength grids do not match; resample/interpolate onto a common grid first.")
 
-        c = results1["c"]  # speed of light from your results dict
+        c = results1.c  # speed of light from your results dict
         freqs = np.sort(c / wl1)  # Hz if wl in meters
 
         # If you padded rho via zero padding, you should also pad freqs consistently.
@@ -118,7 +116,7 @@ class HOMAnalyzer:
             df = (freqs[-1] - freqs[0]) / (N - 1)
             # time window ~ 1/df; sample a few windows
             t_max = 5 / df
-            taus_s = np.linspace(-t_max, t_max, 2*N - 1)
+            taus_s = np.linspace(-t_max, t_max, (2*N - 1)*100)
 
         Pc = hom_dip_vs_delay(rho1, rho2, freqs, taus_s, R=R, T=T)
 
@@ -134,114 +132,4 @@ class HOMAnalyzer:
             "overlap_at_zero_delay": overlap0,
             "purity1": purity1,
             "purity2": purity2,
-        }
-    
-    def compute_two_mode_HOM2(self, mode1="signal", mode2="signal", pad_factor=1):
-        """
-        Computes the two-mode HOM interference visibility.
-
-        Returns:
-            numpy.ndarray: The rescaled cross-correlation probabilities.
-        """
-        if len(self.results_list) < 2:
-            raise ValueError("At least two results are required to compute two-mode HOM interference.")
-
-        rho1, padded_jsa = self.get_reduced_density_matrix(mode=mode1, results_index=0, pad_factor=pad_factor)
-        rho2, padded_jsa = self.get_reduced_density_matrix(mode=mode2, results_index=1, pad_factor=pad_factor)
-
-        # Compute purity and visibility for both modes
-        _, visibility1 = compute_purity_and_visibility(rho1)
-        _, visibility2 = compute_purity_and_visibility(rho2)
-
-        """
-        Convert the reduced density matrices to the time domain using FFT.
-        This is done by applying a 2D Fourier transform to the density matrices.
-        The `fftshift` function is used to center the zero frequency component.
-        Args:
-            rho1 (numpy.ndarray): Reduced density matrix for mode 1.
-            rho2 (numpy.ndarray): Reduced density matrix for mode 2.
-        Returns:
-            tuple: Temporal density matrices for mode 1 and mode 2.
-        """
-        rho1_temporal = convert_to_time_domain(rho1)
-        rho2_temporal = convert_to_time_domain(rho2)
-
-        # Compute cross-correlation probabilities
-        P_t, t_values = compute_cross_correlation(rho1_temporal, rho2_temporal)
-        # Rescale probabilities
-        P_t_rescaled = rescale_probabilities(P_t, visibility1)
-        
-        results1 = self.results_list[0]
-        results2 = self.results_list[1]
-
-        # Check if signal wavelengths match
-        try:
-            if not np.array_equal(results1["SignalWavelengths"], results2["SignalWavelengths"]):
-                raise ValueError("Signal wavelengths for results1 and results2 do not match.")
-        except KeyError as e:
-            raise KeyError(f"Missing key in results: {e}")
-
-        # Check if idler wavelengths match
-        try:
-            if not np.array_equal(results1["IdlerWavelengths"], results2["IdlerWavelengths"]):
-                raise ValueError("Idler wavelengths for results1 and results2 do not match.")
-        except KeyError as e:
-            raise KeyError(f"Missing key in results: {e}")
-
-        if mode1 == mode2 == "signal":
-            """
-            Handles the case where both modes are signal.
-            """
-            wavelengths_1 = np.array(results1["SignalWavelengths"])
-            wavelengths_2 = np.array(results2["SignalWavelengths"])
-
-            frequencies_1 = np.sort(results1["c"] / wavelengths_1)
-            frequencies_2 = np.sort(results2["c"] / wavelengths_2)
-            delta_f_1 = (frequencies_1[-1] - frequencies_1[0]) / (len(frequencies_1) - 1)
-            delta_f_2 = (frequencies_2[-1] - frequencies_2[0]) / (len(frequencies_2) - 1)
-            delta_f_avg = 0.5 * (delta_f_1 + delta_f_2)
-        elif mode1 == mode2 == "idler":
-            """
-            Handles the case where both modes are idler.
-            """
-            wavelengths_1 = np.array(results1["IdlerWavelengths"])
-            wavelengths_2 = np.array(results2["IdlerWavelengths"])
-
-            frequencies_1 = np.sort(results1["c"] / wavelengths_1)
-            frequencies_2 = np.sort(results2["c"] / wavelengths_2)
-            delta_f_1 = (frequencies_1[-1] - frequencies_1[0]) / (len(frequencies_1) - 1)
-            delta_f_2 = (frequencies_2[-1] - frequencies_2[0]) / (len(frequencies_2) - 1)
-            delta_f_avg = 0.5 * (delta_f_1 + delta_f_2)
-        else:
-            """
-            Handles cross-mode cases: signal-idler or idler-signal.
-            """
-            if mode1 == "signal" and mode2 == "idler":
-                wavelengths_1 = np.array(results1["SignalWavelengths"])
-                wavelengths_2 = np.array(results2["IdlerWavelengths"])
-            elif mode1 == "idler" and mode2 == "signal":
-                wavelengths_1 = np.array(results1["IdlerWavelengths"])
-                wavelengths_2 = np.array(results2["SignalWavelengths"])
-            else:
-                raise ValueError(f"Invalid modes: {mode1}, {mode2}. Choose 'signal' or 'idler'.")
-            # Calculate frequencies and average delta_f
-            frequencies_1 = np.sort(results1["c"] / wavelengths_1)
-            frequencies_2 = np.sort(results2["c"] / wavelengths_2)
-            delta_f_1 = (frequencies_1[-1] - frequencies_1[0]) / (len(frequencies_1) - 1)
-            delta_f_2 = (frequencies_2[-1] - frequencies_2[0]) / (len(frequencies_2) - 1)
-            delta_f_avg = np.sqrt(delta_f_1 * delta_f_2)
-    
-        # Use number of padded bins
-        N_freq = padded_jsa.shape[0]
-
-        # Compute time axis in femtoseconds
-        time_bin_width = 1 / (N_freq * delta_f_avg)     # in seconds
-        time_axis_fs = t_values * time_bin_width * 1e15  # in fs
-        
-        # Return results as a dictionary
-        return {
-            "P_t_rescaled": P_t_rescaled,
-            "time_axis": time_axis_fs,
-            "visibility1": visibility1,
-            "visibility2": visibility2,
         }

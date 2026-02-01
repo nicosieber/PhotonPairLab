@@ -1,7 +1,9 @@
 import numpy as np
 from photonpairlab.spdc.spectral_analyser import SpectralAnalyzer
+from photonpairlab.spdc.spdc_results import SPDCResults
 from photonpairlab.crystal import Crystal
 from photonpairlab.laser import BaseLaser
+from photonpairlab.laser.utils_laser import bandwidth_wavelength_to_angular_bandwidth
 
 class SPDC_Simulation:
     def __init__(self, crystal: Crystal, laser: BaseLaser, 
@@ -47,9 +49,13 @@ class SPDC_Simulation:
         self.K_signal = N_signal / self.laser.c  # k' signal
 
         # Bandwidth
-        self.angular_bandwidth = self.laser.bandwidth_wavelength_to_angular_bandwidth(self.laser.bandwidth_wavelength)
+        self.angular_bandwidth = bandwidth_wavelength_to_angular_bandwidth(self.laser.bandwidth_wavelength, self.laser.wavelength_pump)
+        
         # xi_eff and z for simulation
-        self.xi_eff = np.flip(self.crystal.poling_pattern.astype("float64")) 
+        pp = self.crystal.poling_pattern
+        if pp is None:
+            raise ValueError("Poling pattern is not generated in the crystal.")
+        self.xi_eff = np.flip(np.asarray(pp, dtype=np.float64)) 
         self.z = self.crystal.z
     
     def phase_matching_function(self,z, xi_eff, DeltaK):
@@ -116,5 +122,19 @@ class SPDC_Simulation:
             "c": self.laser.c
         }
 
-        return self.results
+        self.spdc_results = SPDCResults(
+            Pump=PPE,
+            Phase=np.abs(PMF),
+            JSI=np.abs(Amp)**2,
+            JSA=np.abs(Amp),
+            SchmidtCoefficients=None,
+            Purity=None,
+            K=None,
+            SignalWavelengths=self.signal_wavelengths,
+            IdlerWavelengths=self.idler_wavelengths,
+            dev=dev,
+            c=self.laser.c
+        )
+
+        return self.spdc_results
         

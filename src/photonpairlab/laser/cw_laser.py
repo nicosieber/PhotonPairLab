@@ -1,5 +1,10 @@
 from photonpairlab.laser.base_laser import BaseLaser
 
+from .utils_laser import (
+    bandwidth_wavelength_to_angular_bandwidth,
+    angular_bandwidth_to_bandwidth_wavelength,
+)
+
 class CWLaser(BaseLaser):
     """
     Represents a continuous-wave (CW) laser.
@@ -32,7 +37,7 @@ class CWLaser(BaseLaser):
         # Handle the provided parameter
         if bandwidth_wavelength is not None:
             self.bandwidth_wavelength = bandwidth_wavelength
-            self.angular_bandwidth = self.bandwidth_wavelength_to_angular_bandwidth(bandwidth_wavelength)
+            self.angular_bandwidth = bandwidth_wavelength_to_angular_bandwidth(bandwidth_wavelength, self.wavelength_pump)
         elif angular_bandwidth is not None:
             self.angular_bandwidth = angular_bandwidth
-            self.bandwidth_wavelength = self.angular_bandwidth_to_bandwidth_wavelength(angular_bandwidth)
+            self.bandwidth_wavelength = angular_bandwidth_to_bandwidth_wavelength(angular_bandwidth, self.wavelength_pump)

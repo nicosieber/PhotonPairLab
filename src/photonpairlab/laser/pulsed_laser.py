@@ -1,5 +1,9 @@
 from photonpairlab.laser.base_laser import BaseLaser
 
+from .utils_laser import (
+    pulse_duration_to_bandwidth_wavelength,
+)
+
 class PulsedLaser(BaseLaser):
     """
     Represents a pulsed laser.
@@ -15,6 +19,6 @@ class PulsedLaser(BaseLaser):
         super().__init__(wavelength)
 
         self.pulse_duration = pulse_duration  # Pulse duration (s)
-        self.bandwidth_wavelength = self.pulse_duration_to_bandwidth_wavelength(self.pulse_duration)  # Bandwidth (m)
+        self.bandwidth_wavelength = pulse_duration_to_bandwidth_wavelength(self.pulse_duration, self.wavelength_pump)  # Bandwidth (m)
 
         self.repetition_rate = repetition_rate  # Repetition rate (Hz)

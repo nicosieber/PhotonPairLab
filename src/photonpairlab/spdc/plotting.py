@@ -1,12 +1,14 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm
+from matplotlib.ticker import MaxNLocator
 
-from photonpairlab.spdc.utils import *
+from photonpairlab.spdc.hom_utils import *
+from photonpairlab.spdc.spdc_results import SPDCResults
 from photonpairlab.spdc.spectral_analyser import SpectralAnalyzer
 
 class SPDC_Plotter:
-    def __init__(self, results):
+    def __init__(self,  results: SPDCResults):
         self.results = results
     
     def plot_schmidt_coefficients(self, fitting_function=gaussian,font_size=12):
@@ -50,11 +52,11 @@ class SPDC_Plotter:
         
         return fig, (ax1, ax2)
     
-    def plot_result(self, key="JSA", fig=None, ax=None, font_size=12, color_map=cm.viridis):
+    def plot_result(self, key="JSA", fig=None, ax=None, font_size=12, color_map=cm.viridis): # type: ignore
         number_ticklabels = 5
 
-        signal_wavelengths = self.results["SignalWavelengths"] * 1e9
-        idler_wavelengths = self.results["IdlerWavelengths"] * 1e9
+        signal_wavelengths = self.results.SignalWavelengths * 1e9
+        idler_wavelengths = self.results.IdlerWavelengths * 1e9
 
         if fig is None and ax is None:
             fig, axs = plt.subplots(1, 1, sharex=True, constrained_layout=False)
@@ -63,11 +65,22 @@ class SPDC_Plotter:
             fig = fig
         else:
             raise ValueError("Both fig and ax must be either None or provided together.")
-
-        im = axs.imshow(self.results[key] / np.amax(self.results[key]),
+        
+        PLOT_KEY_HANDLER = {
+            "Pump": self.results.Pump,
+            "Phase": self.results.Phase,
+            "JSI": self.results.JSI,
+            "JSA": self.results.JSA,
+        }
+        extent = (
+            float(signal_wavelengths.min()),
+            float(signal_wavelengths.max()),
+            float(idler_wavelengths.min()),
+            float(idler_wavelengths.max()),
+        )
+        im = axs.imshow(PLOT_KEY_HANDLER[key] / np.amax(PLOT_KEY_HANDLER[key]),
                 cmap=color_map,
-                extent=[signal_wavelengths.min(), signal_wavelengths.max(),
-                        idler_wavelengths.min(), idler_wavelengths.max()],
+                extent=extent,
                 origin='lower')  # or 'upper' if you want to flip y
         im.set_interpolation("bilinear")
         
@@ -75,8 +88,8 @@ class SPDC_Plotter:
         axs.set_ylabel("idler wavelength (nm)", fontsize=font_size)
   
         axs.grid(False)
-        axs.xaxis.set_major_locator(plt.MaxNLocator(number_ticklabels))
-        axs.yaxis.set_major_locator(plt.MaxNLocator(number_ticklabels))
+        axs.xaxis.set_major_locator(MaxNLocator(number_ticklabels))
+        axs.yaxis.set_major_locator(MaxNLocator(number_ticklabels))
         #plt.gcf().set_facecolor((0.960, 0.960, 0.960))
         
         return fig, axs

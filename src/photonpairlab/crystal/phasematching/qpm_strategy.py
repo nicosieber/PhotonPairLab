@@ -3,8 +3,6 @@ from .base_pm_strategy import PhaseMatchingStrategy
 from ..material.base_material import BaseMaterial
 from photonpairlab.laser import *
 
-from scipy.optimize import minimize_scalar
-
 class QPMPhaseMatching(PhaseMatchingStrategy):
     """
     Quasi Phase-Matching (QPM) strategy for nonlinear crystals.
