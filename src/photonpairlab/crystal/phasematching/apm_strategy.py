@@ -44,7 +44,7 @@ class APMPhaseMatching(PhaseMatchingStrategy):
 
         DeltaK_0 = self.delta_k(angle_pm, laser, wavelength_signal, wavelength_idler,T)
 
-        return (n_pump, n_signal, n_idler), (N_pump, N_signal, N_idler), DeltaK_0, angle_pm
+        return (n_pump, n_signal, n_idler), (N_pump, N_signal, N_idler), DeltaK_0
 
 
     def generate_poling(self, crystal_length: float, 

@@ -5,6 +5,8 @@ from photonpairlab.crystal import Crystal
 from photonpairlab.laser import BaseLaser
 from photonpairlab.laser.utils_laser import bandwidth_wavelength_to_angular_bandwidth
 
+from photonpairlab.constants import C_VAC
+
 class SPDC_Simulation:
     def __init__(self, crystal: Crystal, laser: BaseLaser, 
                  wavelength_signal: float | None=None, wavelength_idler : float | None=None, 
@@ -38,15 +40,15 @@ class SPDC_Simulation:
         angular frequencies, inverse group velocities, bandwidth, and effective nonlinear coefficients.
         """
         
-        _, (N_pump, N_signal, N_idler), self.DeltaK_0, angle_pm = self.crystal.compute_phase_mismatch(self.laser, self.wavelength_signal, self.wavelength_idler, T=self.crystal.T)
+        _, (N_pump, N_signal, N_idler), self.DeltaK_0 = self.crystal.compute_phase_mismatch(self.laser, self.wavelength_signal, self.wavelength_idler, T=self.crystal.T)
         # Center angular frequencies
-        self.omega_pump = 2 * np.pi * self.laser.c / self.laser.wavelength_pump
-        self.omega_signal = 2 * np.pi * self.laser.c / self.wavelength_signal
-        self.omega_idler = 2 * np.pi * self.laser.c / self.wavelength_idler
+        self.omega_pump = 2 * np.pi * C_VAC / self.laser.wavelength_pump
+        self.omega_signal = 2 * np.pi * C_VAC / self.wavelength_signal
+        self.omega_idler = 2 * np.pi * C_VAC / self.wavelength_idler
         # Inverse group velocities
-        self.K_pump = N_pump / self.laser.c  # k' pump
-        self.K_idler = N_idler / self.laser.c  # k' idler
-        self.K_signal = N_signal / self.laser.c  # k' signal
+        self.K_pump = N_pump / C_VAC  # k' pump
+        self.K_idler = N_idler / C_VAC  # k' idler
+        self.K_signal = N_signal / C_VAC  # k' signal
 
         # Bandwidth
         self.angular_bandwidth = bandwidth_wavelength_to_angular_bandwidth(self.laser.bandwidth_wavelength, self.laser.wavelength_pump)
@@ -58,17 +60,17 @@ class SPDC_Simulation:
         self.xi_eff = np.flip(np.asarray(pp, dtype=np.float64)) 
         self.z = self.crystal.z
     
-    def phase_matching_function(self,z, xi_eff, DeltaK):
+    def phase_matching_function(self, DeltaK):
         """
         Compute the phase integral for a given set of parameters.
 
         This function calculates the phase integral by integrating over the 
         product of the effective coupling coefficient and the exponential 
         phase factor, using the trapezoidal rule.
-
         """
-        y = xi_eff[:, None, None] * np.exp(-1j * DeltaK[None, :, :] * z[:, None, None])
-        return np.trapezoid(y, z, axis=0)
+        if self.z is not None:
+            y = self.xi_eff[:, None, None] * np.exp(-1j * DeltaK[None, :, :] * self.z[:, None, None])
+        return np.trapezoid(y, self.z, axis=0)
     
     def pump_pulse_envelope(self, fs, fi):
         """
@@ -95,8 +97,8 @@ class SPDC_Simulation:
             self.signal_wavelengths = np.linspace(self.wavelength_signal_start, self.wavelength_signal_end, steps)
            
         # Precompute constants
-        fs = 2 * np.pi * self.laser.c / self.signal_wavelengths[:, None]  # Signal frequencies (column vector)
-        fi = 2 * np.pi * self.laser.c / self.idler_wavelengths[None, :]  # Idler frequencies (row vector)
+        fs = 2 * np.pi * C_VAC / self.signal_wavelengths[:, None]  # Signal frequencies (column vector)
+        fi = 2 * np.pi * C_VAC / self.idler_wavelengths[None, :]  # Idler frequencies (row vector)
 
         # Compute DeltaK_0 and DeltaK_1 for the defined grid of frequencies
         DeltaK_1 = (self.K_pump - self.K_signal) * (fs - self.omega_signal) + (self.K_pump - self.K_idler) * (fi - self.omega_idler)
@@ -105,22 +107,8 @@ class SPDC_Simulation:
         
         # Compute Pump, Phase, JSI, and JSA using vectorized operations
         PPE = self.pump_pulse_envelope(fs, fi)        
-        PMF = self.phase_matching_function(self.z, self.xi_eff, DeltaK)
+        PMF = self.phase_matching_function(DeltaK)
         Amp = PPE * PMF
-
-        self.results = {
-            "Pump": PPE,
-            "Phase": np.abs(PMF),
-            "JSI": np.abs(Amp)**2,
-            "JSA": np.abs(Amp),
-            "SchmidtCoefficients": None,
-            "Purity": None,
-            "K": None,
-            "SignalWavelengths": self.signal_wavelengths,
-            "IdlerWavelengths": self.idler_wavelengths,
-            "dev": dev,
-            "c": self.laser.c
-        }
 
         self.spdc_results = SPDCResults(
             Pump=PPE,
@@ -133,7 +121,7 @@ class SPDC_Simulation:
             SignalWavelengths=self.signal_wavelengths,
             IdlerWavelengths=self.idler_wavelengths,
             dev=dev,
-            c=self.laser.c
+            c=C_VAC
         )
 
         return self.spdc_results

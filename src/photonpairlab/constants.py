@@ -1,0 +1,1 @@
+C_VAC = 299792458  # Speed of light in vacuum (m/s)

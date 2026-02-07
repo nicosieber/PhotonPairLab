@@ -3,6 +3,11 @@ from .phasematching.qpm_strategy import QPMPhaseMatching
 from .phasematching.apm_strategy import APMPhaseMatching
 from photonpairlab.laser import *
 
+PM_STRATEGY_HANDLER = {
+    "quasi": QPMPhaseMatching,
+    "angle": APMPhaseMatching,
+}
+
 
 class Crystal:
     """
@@ -16,7 +21,7 @@ class Crystal:
     """
 
     def __init__(self, crystal_length: float, material: BaseMaterial, 
-                 coherence_length: float | None = None, T: float = 25.0, pm_strategy: str ="angle", 
+                 coherence_length: float | None = None, T: float = 25.0, pm_strategy: str ="quasi", 
                  spdc_type: str ="type-IIoeo", phi_deg: float = 0, w: float | None = None, **kwargs):
         """
         Initializes the Crystal with a given material and phase-matching strategy.
@@ -35,20 +40,12 @@ class Crystal:
         self.phi_deg = phi_deg
         self.w = w
 
-        # Constants
-        self.nm = 1e-9
-        self.um = 1e-6
-        self.mm = 1e-3
+        # Load phase-matching strategy via handler
+        try:
+            self.pm_strategy = PM_STRATEGY_HANDLER[pm_strategy](material, spdc_type=spdc_type, **kwargs)
+        except KeyError:
+            raise KeyError(f"Unknown phase-matching strategy: {pm_strategy}. Valid options are: {list(PM_STRATEGY_HANDLER.keys())}")
 
-        if pm_strategy == "quasi":
-            # Placeholder until QPMPhaseMatching is ready
-            #raise NotImplementedError("QPMPhaseMatching is not yet implemented.")
-            self.pm_strategy = QPMPhaseMatching(material, spdc_type=spdc_type,**kwargs)
-        elif pm_strategy == "angle":
-            self.pm_strategy = APMPhaseMatching(material, spdc_type=spdc_type, **kwargs)
-        else:
-            raise ValueError(f"Unknown phase-matching strategy: {pm_strategy}")
-        
         # Temperature Expansion of crystal
         try:
             self.temperature_adjusted_crystal_length = self.material.thermal_expansion(length=self.crystal_length, axis="z", temperature=self.T)
