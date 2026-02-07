@@ -1,6 +1,9 @@
-from .material.base_material import BaseMaterial
-from .phasematching.qpm_strategy import QPMPhaseMatching
-from .phasematching.apm_strategy import APMPhaseMatching
+import numpy as np
+
+from .material import BaseMaterial
+from .phasematching import QPMPhaseMatching
+from .phasematching import APMPhaseMatching
+
 from photonpairlab.laser import *
 
 PM_STRATEGY_HANDLER = {
@@ -20,9 +23,16 @@ class Crystal:
         pm_strategy: Instance of the phase-matching strategy.
     """
 
-    def __init__(self, crystal_length: float, material: BaseMaterial, 
-                 coherence_length: float | None = None, T: float = 25.0, pm_strategy: str ="quasi", 
-                 spdc_type: str ="type-IIoeo", phi_deg: float = 0, w: float | None = None, **kwargs):
+    def __init__(
+            self, crystal_length: float, 
+            material: BaseMaterial, 
+            coherence_length: float | None = None, 
+            T: float = 25.0, pm_strategy: str ="quasi", 
+            spdc_type: str ="type-IIoeo", 
+            phi_deg: float = 0, 
+            w: float | None = None,
+            **kwargs
+            ):
         """
         Initializes the Crystal with a given material and phase-matching strategy.
 
