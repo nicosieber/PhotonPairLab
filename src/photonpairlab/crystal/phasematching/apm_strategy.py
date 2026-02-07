@@ -2,6 +2,7 @@ import numpy as np
 from scipy.optimize import minimize_scalar
 
 from .base_pm_strategy import PhaseMatchingStrategy
+from .pm_result import PhaseMismatchResult
 from ..material.base_material import BaseMaterial
 from photonpairlab.laser import *
 
@@ -43,8 +44,13 @@ class APMPhaseMatching(PhaseMatchingStrategy):
         N_idler = self.get_group_index(wavelength_idler, pol_idler, angle_pm, T)
 
         DeltaK_0 = self.delta_k(angle_pm, laser, wavelength_signal, wavelength_idler,T)
-
-        return (n_pump, n_signal, n_idler), (N_pump, N_signal, N_idler), DeltaK_0
+        return PhaseMismatchResult(
+            n=(n_pump, n_signal, n_idler),
+            N=(N_pump, N_signal, N_idler),
+            delta_k0=DeltaK_0,
+            angle_pm=angle_pm,
+            coherence_length=self.coherence_length,
+        )
 
 
     def generate_poling(self, crystal_length: float, 

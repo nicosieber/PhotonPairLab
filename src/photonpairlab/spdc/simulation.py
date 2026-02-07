@@ -10,8 +10,8 @@ from photonpairlab.constants import C_VAC
 class SPDC_Simulation:
     def __init__(self, crystal: Crystal, laser: BaseLaser, 
                  wavelength_signal: float | None=None, wavelength_idler : float | None=None, 
-                 wavelength_signal_range: list = [None, None], 
-                 wavelength_idler_range: list = [None, None]):
+                 wavelength_signal_range: list[float | None] = [None, None], 
+                 wavelength_idler_range: list[float | None] = [None, None]):
         # Initialize the SPDC simulation with a crystal and laser object.
         self.crystal = crystal
         self.laser = laser
@@ -40,15 +40,13 @@ class SPDC_Simulation:
         angular frequencies, inverse group velocities, bandwidth, and effective nonlinear coefficients.
         """
         
-        _, (N_pump, N_signal, N_idler), self.DeltaK_0 = self.crystal.compute_phase_mismatch(self.laser, self.wavelength_signal, self.wavelength_idler, T=self.crystal.T)
+        #_, (N_pump, N_signal, N_idler), self.DeltaK_0 = self.crystal.compute_phase_mismatch(self.laser, self.wavelength_signal, self.wavelength_idler, T=self.crystal.T)
+        self.pm_result = self.crystal.compute_phase_mismatch(self.laser, self.wavelength_signal, self.wavelength_idler, T=self.crystal.T)
+        self.DeltaK_0 = self.pm_result.delta_k0
         # Center angular frequencies
         self.omega_pump = 2 * np.pi * C_VAC / self.laser.wavelength_pump
         self.omega_signal = 2 * np.pi * C_VAC / self.wavelength_signal
         self.omega_idler = 2 * np.pi * C_VAC / self.wavelength_idler
-        # Inverse group velocities
-        self.K_pump = N_pump / C_VAC  # k' pump
-        self.K_idler = N_idler / C_VAC  # k' idler
-        self.K_signal = N_signal / C_VAC  # k' signal
 
         # Bandwidth
         self.angular_bandwidth = bandwidth_wavelength_to_angular_bandwidth(self.laser.bandwidth_wavelength, self.laser.wavelength_pump)
@@ -72,11 +70,16 @@ class SPDC_Simulation:
             y = self.xi_eff[:, None, None] * np.exp(-1j * DeltaK[None, :, :] * self.z[:, None, None])
         return np.trapezoid(y, self.z, axis=0)
     
-    def pump_pulse_envelope(self, fs, fi):
+    def pump_pulse_envelope(self):
         """
         Computes the Gaussian pump spectrum for given signal and idler angular frequencies.
 
         """
+        if self.signal_wavelengths is None or self.idler_wavelengths is None:
+            raise ValueError("Signal and idler wavelengths must be defined to compute the pump pulse envelope.")
+        fs = 2 * np.pi * C_VAC / self.signal_wavelengths[:, None]  # Signal frequencies (column vector)
+        fi = 2 * np.pi * C_VAC / self.idler_wavelengths[None, :]  # Idler frequencies (row vector)
+
         return np.exp(-((fi + fs - self.omega_pump) ** 2) / (2 * self.angular_bandwidth ** 2))
     
     def run_simulation(self, steps=100, dev=5):
@@ -93,20 +96,19 @@ class SPDC_Simulation:
             self.signal_wavelengths = np.linspace(self.wavelength_signal - dev * 1e-9, self.wavelength_signal + dev * 1e-9, steps)
         else:
             # Generate signal and idler wavelength arrays based on provided ranges
+            if self.wavelength_signal_start is None or self.wavelength_signal_end is None:
+                raise ValueError("Both start and end wavelengths for signal must be provided.")
+            if self.wavelength_idler_start is None or self.wavelength_idler_end is None:
+                raise ValueError("Both start and end wavelengths for idler must be provided.")
             self.idler_wavelengths = np.linspace(self.wavelength_idler_start, self.wavelength_idler_end, steps)
             self.signal_wavelengths = np.linspace(self.wavelength_signal_start, self.wavelength_signal_end, steps)
-           
-        # Precompute constants
-        fs = 2 * np.pi * C_VAC / self.signal_wavelengths[:, None]  # Signal frequencies (column vector)
-        fi = 2 * np.pi * C_VAC / self.idler_wavelengths[None, :]  # Idler frequencies (row vector)
 
         # Compute DeltaK_0 and DeltaK_1 for the defined grid of frequencies
-        DeltaK_1 = (self.K_pump - self.K_signal) * (fs - self.omega_signal) + (self.K_pump - self.K_idler) * (fi - self.omega_idler)
-        
+        DeltaK_1 = self.pm_result.compute_delta_k1(self.signal_wavelengths, self.idler_wavelengths, self.omega_signal, self.omega_idler)
         DeltaK = self.DeltaK_0 + DeltaK_1
         
         # Compute Pump, Phase, JSI, and JSA using vectorized operations
-        PPE = self.pump_pulse_envelope(fs, fi)        
+        PPE = self.pump_pulse_envelope()        
         PMF = self.phase_matching_function(DeltaK)
         Amp = PPE * PMF
 
