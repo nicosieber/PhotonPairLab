@@ -31,8 +31,8 @@ class PhaseMismatchResult:
             pm_omega_idler: float
             ) -> np.ndarray:
         """Computes the phase mismatch Δk1 for given signal and idler wavelengths."""
-        fs = 2 * np.pi * C_VAC / wavelength_signal_range[:, None]  # Signal frequencies (column vector)
-        fi = 2 * np.pi * C_VAC / wavelength_idler_range[None, :]  # Idler frequencies (row vector)
+        fs = 2 * np.pi * C_VAC / wavelength_signal_range[None, :]  # Signal frequencies (row vector)
+        fi = 2 * np.pi * C_VAC / wavelength_idler_range[:, None]  # Idler frequencies (column vector)
 
         K_pump = self.get_Np() / C_VAC
         K_signal = self.get_Ns() / C_VAC

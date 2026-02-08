@@ -90,34 +90,6 @@ def linear_intersection_coordinates(m1, b1, m2, b2):
     y = m1 * x + b1
     return x, y
 
-def interpolate_matrix(matrix, pad_factor):
-    
-    # --- Zero-padding for interpolation ---
-    original_shape = matrix.shape
-    pad_x = (pad_factor - 1) * original_shape[0] // 2
-    pad_y = (pad_factor - 1) * original_shape[1] // 2
-
-    padded_matrix = np.pad(matrix, ((pad_x, pad_x), (pad_y, pad_y)), mode='constant')
-
-    return padded_matrix
-
-def interpolate_array_linspace(array, pad_factor):
-    """
-    Interpolates a 1D array by increasing the number of points linearly using np.linspace.
-
-    Args:
-        array (np.ndarray): 1D input array.
-        pad_factor (int): Factor to increase resolution (e.g., 4 = 4x more points).
-
-    Returns:
-        np.ndarray: Linearly interpolated array.
-    """
-    N = len(array)
-    x_old = np.linspace(0, 1, N)
-    x_new = np.linspace(0, 1, N * pad_factor)
-    interpolated = np.interp(x_new, x_old, array)
-    return interpolated
-
 def convert_to_time_domain(matrix):
     """
     Converts a given matrix from the frequency domain to the time domain.
@@ -137,124 +109,35 @@ def convert_to_time_domain(matrix):
     """
     return fftshift(fft2(fftshift(matrix)))
 
-def compute_purity_and_visibility(rho):
+
+def hom_coincidence_from_rhos(rho1, rho2, R=0.5, T=0.5):
     """
-    Computes the purity and visibility for a given density matrix.
-
-    Args:
-        rho (numpy.ndarray): The density matrix.
-
-    Returns:
-        tuple: Purity and visibility.
+    Coincidence probability for two single-photon states with density matrices rho1 and rho2.
+    Uses: Pc = R^2 + T^2 - 2RT * Re(Tr[rho1 rho2])
+    Assumes rho1, rho2 are trace-1 density matrices in the same basis.
     """
-    purity = np.real(np.trace(rho @ rho))
-    P_min = 0.5 * (1 - purity)
-    P_max = 0.5
-    visibility = (P_max - P_min) / P_max
-    return purity, visibility
+    overlap = np.trace(rho1 @ rho2)
+    return (R**2 + T**2) - 2 * R * T * np.real(overlap)
 
-def compute_HOM_probability(rho1, rho2, reflection=0.5, transmission=0.5):
+
+def apply_delay_to_rho_freq(rho, freqs_hz, tau_s):
     """
-    Computes the HOM interference probability based on the overlap of two modes 
-    at a beamsplitter with given reflection and transmission coefficients.
-
-    Args:
-        overlap (float): Overlap integral between two modes.
-        reflection (float): Reflection coefficient (default is 0.5).
-        transmission (float): Transmission coefficient (default is 0.5).
-
-    Returns:
-        float: HOM interference probability.
+    Apply time delay tau_s to a density matrix rho(f,f') in the frequency basis:
+        rho_tau(f,f') = exp(-i 2pi (f - f') tau) * rho(f,f')
+    freqs_hz: 1D array of frequency-bin centers (Hz), length N.
+    rho: NxN density matrix in that same bin basis.
     """
-    overlap = np.sum(np.conj(rho1) * rho2)
-    return 0.5 * (1 - 2 * reflection * transmission * np.abs(overlap))
+    f = freqs_hz.reshape(-1, 1)
+    phase = np.exp(-1j * 2*np.pi * (f - f.T) * tau_s)
+    return rho * phase
 
-def compute_cross_correlation(rho1_temporal, rho2_temporal):
+
+def hom_dip_vs_delay(rho1, rho2, freqs_hz, taus_s, R=0.5, T=0.5):
     """
-    Computes the cross-correlation probabilities between two temporal density matrices.
-
-    Args:
-        rho1_temporal (numpy.ndarray): Temporal density matrix for the first mode.
-        rho2_temporal (numpy.ndarray): Temporal density matrix for the second mode.
-
-    Returns:
-        numpy.ndarray: Cross-correlation probabilities.
+    Compute Pc(tau) using frequency-domain delay operator.
     """
-    N = rho1_temporal.shape[0]
-    t_vals = np.arange(-(N - 1), N)
-    P_t_cross = []
-
-    for t in t_vals:
-        """
-        For each time delay t, extract the overlapping submatrices from the two temporal density matrices.
-        The slicing ensures that only the *common overlapping region* between the two matrices is used:
-
-        - When t > 0, we delay rho1_temporal forward by removing its first t rows/columns,
-        and trim rho2_temporal by removing its last t rows/columns to match.
-        - When t < 0, we delay rho2_temporal forward (opposite direction), and trim rho1_temporal accordingly.
-
-        This avoids artificial wraparound (as would happen with np.roll) and ensures that
-        the overlap is computed only where the two wavepackets truly coincide in time,
-        mimicking the physical behavior of delayed wave interference at a beamsplitter.
-        """
-        if t >= 0:
-            A = rho1_temporal[t:, t:]
-            B = rho2_temporal[:-t or None, :-t or None]  # handles k=0
-        else:
-            A = rho1_temporal[:t or None, :t or None]
-            B = rho2_temporal[-t:, -t:]
-    
-        # Only proceed if A and B have the same shape and nonzero size
-        if A.shape == B.shape and A.size > 0:
-            prob_cross = compute_HOM_probability(A, B) # Use HOM probability calculation
-            P_t_cross.append(prob_cross)
-        else:
-            P_t_cross.append(0.5)  # fallback to no interference
-
-    return np.array(P_t_cross), t_vals
-
-
-def compute_autocorrelation(rho_temporal):
-    """
-    Computes the autocorrelation as a function of time delay for a given temporal density matrix.
-
-    Args:
-        rho_temporal (numpy.ndarray): Temporal density matrix.
-
-    Returns:
-        tuple: A tuple containing:
-            - P_tau (numpy.ndarray): Autocorrelation probabilities as a function of time delay.
-            - t_vals (numpy.ndarray): Time delay values (arbitrary units).
-    """
-    N = rho_temporal.shape[0]
-    t_vals = np.arange(-(N - 1), N)
-
-    P_t = []
-    for t in t_vals:
-        d0 = np.diag(rho_temporal, k=0)
-        dk = np.diag(rho_temporal, k=t)
-        length = min(len(d0), len(dk))
-        overlap = np.sum(np.conj(d0[:length]) * dk[:length])
-        prob = 0.5 * (1 - np.abs(overlap)**2)
-        P_t.append(prob)
-
-    return np.array(P_t), t_vals
-
-def rescale_probabilities(P_t, visibility):
-    """
-    Rescales probabilities to match the physical range.
-
-    Args:
-        P_t (numpy.ndarray): The raw probabilities.
-        visibility (float): The visibility to use for scaling.
-
-    Returns:
-        numpy.ndarray: Rescaled probabilities.
-    """
-    P_t_rescaled = (P_t - np.min(P_t)) / (np.max(P_t) - np.min(P_t))  # normalize to [0,1]
-    P_min = 0.5 * (1 - visibility)
-    P_max = 0.5
-    return P_min + (P_max - P_min) * P_t_rescaled
-
-
- 
+    Pc = np.empty_like(taus_s, dtype=float)
+    for i, tau in enumerate(taus_s):
+        rho2_tau = apply_delay_to_rho_freq(rho2, freqs_hz, tau)
+        Pc[i] = hom_coincidence_from_rhos(rho1, rho2_tau, R=R, T=T)
+    return Pc

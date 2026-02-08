@@ -77,8 +77,8 @@ class SPDC_Simulation:
         """
         if self.signal_wavelengths is None or self.idler_wavelengths is None:
             raise ValueError("Signal and idler wavelengths must be defined to compute the pump pulse envelope.")
-        fs = 2 * np.pi * C_VAC / self.signal_wavelengths[:, None]  # Signal frequencies (column vector)
-        fi = 2 * np.pi * C_VAC / self.idler_wavelengths[None, :]  # Idler frequencies (row vector)
+        fs = 2 * np.pi * C_VAC / self.signal_wavelengths[None, :]  # Signal frequencies (row vector)
+        fi = 2 * np.pi * C_VAC / self.idler_wavelengths[:, None]  # Idler frequencies (column vector)
 
         return np.exp(-((fi + fs - self.omega_pump) ** 2) / (2 * self.angular_bandwidth ** 2))
     

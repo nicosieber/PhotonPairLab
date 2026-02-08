@@ -78,10 +78,12 @@ class SPDC_Plotter:
             float(idler_wavelengths.min()),
             float(idler_wavelengths.max()),
         )
-        im = axs.imshow(PLOT_KEY_HANDLER[key] / np.amax(PLOT_KEY_HANDLER[key]),
-                cmap=color_map,
-                extent=extent,
-                origin='lower')  # or 'upper' if you want to flip y
+        im = axs.imshow(
+            PLOT_KEY_HANDLER[key] / np.amax(PLOT_KEY_HANDLER[key]),
+            cmap=color_map,
+            extent=extent,
+            origin='lower' # or 'upper' if you want to flip y
+            )  
         im.set_interpolation("bilinear")
         
         axs.set_xlabel("signal wavelength (nm)", fontsize=font_size)
@@ -90,6 +92,5 @@ class SPDC_Plotter:
         axs.grid(False)
         axs.xaxis.set_major_locator(MaxNLocator(number_ticklabels))
         axs.yaxis.set_major_locator(MaxNLocator(number_ticklabels))
-        #plt.gcf().set_facecolor((0.960, 0.960, 0.960))
         
         return fig, axs
