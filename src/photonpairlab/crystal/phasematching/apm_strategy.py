@@ -4,7 +4,7 @@ from scipy.optimize import minimize_scalar
 from .base_pm_strategy import PhaseMatchingStrategy
 from .pm_result import PhaseMismatchResult
 from ..material.base_material import BaseMaterial
-from photonpairlab.laser import *
+from photonpairlab.laser import BaseLaser
 
 class APMPhaseMatching(PhaseMatchingStrategy):
     """
@@ -82,8 +82,12 @@ class APMPhaseMatching(PhaseMatchingStrategy):
         z = np.linspace(-temperature_adjusted_length / 2, temperature_adjusted_length / 2, len(poling_pattern))
         return poling_pattern, z, temperature_adjusted_length
 
-    def find_phase_matching_angle(self, laser: BaseLaser=CWLaser(405e-9,bandwidth_wavelength=4.3e-9),
-                                  wavelength_signal: float=810e-9, wavelength_idler: float=810e-9, T: float | None=None):
+    def find_phase_matching_angle(
+            self, laser: BaseLaser,
+            wavelength_signal: float, 
+            wavelength_idler: float, 
+            T: float | None = None
+            ) -> float:
         """
         result = minimize_scalar(
             self.delta_k, bounds=(-180, 180), method='bounded',

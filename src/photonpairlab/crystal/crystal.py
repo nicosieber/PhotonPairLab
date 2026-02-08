@@ -62,6 +62,7 @@ class Crystal:
         except ValueError as e:
             raise ValueError(f"Error in thermal expansion: {e}")
 
+        
         self.poling_pattern: np.ndarray | None = None
         self.z: np.ndarray | None = None
         self.temperature_adjusted_length: float | None = None

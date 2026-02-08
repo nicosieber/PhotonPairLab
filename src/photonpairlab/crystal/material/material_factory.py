@@ -25,7 +25,7 @@ MODEL_MAPPER: dict[str, Type[BaseMaterialModel]] = {
 class MaterialFactory:
     @staticmethod
     def create(name: str) -> BaseMaterialModel:
-        material_data = load_material_data(name)
+        material_data = load_material_data(name) # Load material data by name into MaterialData dataclass
 
         try:
             model_cls = MODEL_MAPPER[name]
