@@ -1,0 +1,608 @@
+
+<!DOCTYPE html>
+
+
+<html lang="y" data-content_root="./" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>SPDC: Theory &#8212; PhotonPairLab 0.1 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="_static/styles/bootstrap.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+
+  
+  <link href="_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/sphinx-book-theme.css?v=eba8b062" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
+  <script src="_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+    <script src="_static/documentation_options.js?v=87b78224"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '02_theory';</script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Hong–Ou–Mandel Interference" href="03_theory_hom.html" />
+    <link rel="prev" title="PhotonPairLab documentation" href="01_overview.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="y"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">PhotonPairLab 0.1 documentation</p>
+  
+</a></div>
+        <div class="sidebar-primary-item">
+
+ <script>
+ document.write(`
+   <button class="btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script></div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <p aria-level="2" class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="01_overview.html">PhotonPairLab documentation</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">SPDC: Theory</a></li>
+<li class="toctree-l1"><a class="reference internal" href="03_theory_hom.html">Hong–Ou–Mandel Interference</a></li>
+</ul>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="api/index.html">PhotonPairLabs API</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/spdc_simulation.html">SPDC Simulation API</a></li>
+</ul>
+</details></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+
+
+
+<div class="dropdown dropdown-download-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Download this page">
+    <i class="fas fa-download"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="_sources/02_theory.rst" target="_blank"
+   class="btn btn-sm btn-download-source-button dropdown-item"
+   title="Download source file"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file"></i>
+  </span>
+<span class="btn__text-container">.rst</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li>
+<button onclick="window.print()"
+  class="btn btn-sm btn-download-pdf-button dropdown-item"
+  title="Print to PDF"
+  data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+<span class="btn__text-container">.pdf</span>
+</button>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+<button onclick="toggleFullScreen()"
+  class="btn btn-sm btn-fullscreen-button"
+  title="Fullscreen mode"
+  data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-expand"></i>
+  </span>
+
+</button>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm pst-navbar-icon search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+<button class="sidebar-toggle secondary-toggle btn btn-sm" title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</button>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>SPDC: Theory</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#energy-conservation">Energy conservation</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#momentum-conservation">Momentum conservation</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#pump-pulse-envelope-ppe">Pump Pulse Envelope (PPE)</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#phase-matching-function-pmf">Phase Matching Function (PMF)</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#phase-matching-techniques">Phase Matching Techniques</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#angle-phase-matching-apm">Angle Phase Matching (APM)</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#phase-matching-condition">Phase-Matching Condition</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#effective-refractive-index-in-uniaxial-crystals">Effective Refractive Index in Uniaxial Crystals</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#effective-refractive-index-in-biaxial-crystals">Effective Refractive Index in Biaxial Crystals</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#quasi-phase-matching-qpm">Quasi-Phase Matching (QPM)</a></li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="spdc-theory">
+<h1>SPDC: Theory<a class="headerlink" href="#spdc-theory" title="Link to this heading">#</a></h1>
+<p>PhotonPairLab is a Python-based simulation toolkit for modeling the generation of photon pairs via spontaneous parametric down-conversion (SPDC) in nonlinear crystals.</p>
+<p>Spontaneous Parametric Down-Conversion is a second-order nonlinear process in which a pump photon spontaneously splits into two photons (called <em>signal</em> and <em>idler</em> photons) by interacting with its surrounding medium.</p>
+<p>The effect can be grouped into three categories:</p>
+<ul class="simple">
+<li><p><strong>Type 0</strong>: Pump, signal and idler photons have the same polarization. Typically, this is ordinary polarization (denoted <code class="docutils literal notranslate"><span class="pre">o</span></code>) for all three photons.</p></li>
+<li><p><strong>Type I</strong>: Signal and idler photons have the same polarization, but it is orthogonal to the pump photon’s polarization. Typically, the pump photon is extraordinary polarized (<code class="docutils literal notranslate"><span class="pre">e</span></code>), while the signal and idler photons are both ordinary polarized (<code class="docutils literal notranslate"><span class="pre">o</span></code>), or vice versa.</p></li>
+<li><p><strong>Type II</strong>: Signal and idler photons have orthogonal polarizations to each other. For example, one photon is ordinary polarized (<code class="docutils literal notranslate"><span class="pre">o</span></code>), and the other is extraordinary polarized (<code class="docutils literal notranslate"><span class="pre">e</span></code>).</p></li>
+</ul>
+<p>The process itself is described by the Hamiltonian</p>
+<div class="math notranslate nohighlight">
+\[\mathbf{H}
+=
+c \int d\omega_s \, d\omega_i \,
+\epsilon(\omega_s,\omega_i)
+\varphi(\omega_s,\omega_i)
+\mathbf{a}^\dagger(\omega_s)
+\mathbf{a}^\dagger(\omega_i)
++ h.c.\]</div>
+<p>with <span class="math notranslate nohighlight">\(c\)</span> being the vacuum speed of light and <span class="math notranslate nohighlight">\(\mathbf{a}^\dagger\)</span> bosonic creation operators.
+<span class="math notranslate nohighlight">\(\epsilon(\omega_s,\omega_i)\)</span> represents the <strong>pump pulse envelope (PPE)</strong> and
+<span class="math notranslate nohighlight">\(\varphi(\omega_s,\omega_i)\)</span> is the <strong>phase matching function (PMF)</strong>, which is determined by the crystal properties.</p>
+<p>The SPDC process is constrained by conservation laws.</p>
+<section id="energy-conservation">
+<h2>Energy conservation<a class="headerlink" href="#energy-conservation" title="Link to this heading">#</a></h2>
+<div class="math notranslate nohighlight">
+\[\omega_p = \omega_s + \omega_i\]</div>
+<p>This ensures that the total energy of the generated signal <span class="math notranslate nohighlight">\(\omega_s\)</span> and idler <span class="math notranslate nohighlight">\(\omega_i\)</span>
+photons equals the energy of the pump photon <span class="math notranslate nohighlight">\(\omega_p\)</span>.</p>
+</section>
+<section id="momentum-conservation">
+<h2>Momentum conservation<a class="headerlink" href="#momentum-conservation" title="Link to this heading">#</a></h2>
+<div class="math notranslate nohighlight">
+\[\vec{k}_p = \vec{k}_s + \vec{k}_i\]</div>
+<p>This relation must be satisfied for efficient photon pair generation. However, in many practical scenarios this condition cannot be fulfilled exactly due to material dispersion or birefringence. This mismatch leads to reduced efficiency and must be corrected using <strong>phase matching techniques</strong>.</p>
+</section>
+<section id="pump-pulse-envelope-ppe">
+<h2>Pump Pulse Envelope (PPE)<a class="headerlink" href="#pump-pulse-envelope-ppe" title="Link to this heading">#</a></h2>
+<p>We assume a Gaussian profile for the pump pulse. Its spectral envelope is given by</p>
+<div class="math notranslate nohighlight">
+\[\epsilon(\omega_s, \omega_i)
+=
+\exp\left[
+-
+\left(
+\frac{\omega_s + \omega_i - \omega_p}{2\omega_{\text{fwhm}}}
+\right)^2
+\right]\]</div>
+<p>This term reflects the spectral amplitude distribution of the pump field.</p>
+<p>The full-width-half-maximum (FWHM) of the pulse in time and frequency are linked via</p>
+<div class="math notranslate nohighlight">
+\[\Delta\nu \cdot \Delta\tau
+=
+\frac{2\ln(2)}{\pi}\]</div>
+<p>This yields a conversion from pulse duration <span class="math notranslate nohighlight">\(\Delta\tau\)</span>
+to wavelength bandwidth <span class="math notranslate nohighlight">\(\Delta\lambda\)</span> at a given central wavelength <span class="math notranslate nohighlight">\(\lambda_0\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[\Delta\lambda
+=
+\frac{2\ln(2)}{\pi}
+\cdot
+\frac{\lambda_0^2}{c \Delta\tau}\]</div>
+</section>
+<section id="phase-matching-function-pmf">
+<h2>Phase Matching Function (PMF)<a class="headerlink" href="#phase-matching-function-pmf" title="Link to this heading">#</a></h2>
+<p>The phase matching function determines how well the interacting waves satisfy momentum conservation within the nonlinear crystal.</p>
+<div class="math notranslate nohighlight">
+\[\varphi(\omega_s, \omega_i)
+=
+\int
+\chi(z)
+\exp[-i\Delta k(\omega_s, \omega_i) z]
+\, dz\]</div>
+<p>where the phase mismatch is defined as</p>
+<div class="math notranslate nohighlight">
+\[\Delta k(\omega_s, \omega_i)
+=
+k_p(\omega_s + \omega_i)
+-
+k_s(\omega_s)
+-
+k_i(\omega_i)\]</div>
+<p>This mismatch accumulates along the crystal length and suppresses efficient down-conversion when non-zero. The shape of the PMF is typically <strong>sinc-like</strong> and strongly affects the joint spectral amplitude (JSA).</p>
+</section>
+<section id="phase-matching-techniques">
+<h2>Phase Matching Techniques<a class="headerlink" href="#phase-matching-techniques" title="Link to this heading">#</a></h2>
+<p>The central goal of any phase-matching technique is to minimize the <strong>phase mismatch</strong>, ensuring that the interacting waves remain in phase as they propagate through the nonlinear crystal.</p>
+<ul class="simple">
+<li><p>In <strong>angle phase matching</strong>, this is achieved by optimizing the internal propagation angle(s) — <span class="math notranslate nohighlight">\(\theta\)</span> for uniaxial crystals, or both <span class="math notranslate nohighlight">\(\theta\)</span> and <span class="math notranslate nohighlight">\(\phi\)</span> for biaxial crystals — to find the direction where <span class="math notranslate nohighlight">\(\Delta k \approx 0\)</span>.</p></li>
+<li><p>In <strong>quasi-phase matching (QPM)</strong>, the crystal is periodically or aperiodically poled to engineer a compensating grating vector. The poling period <span class="math notranslate nohighlight">\(\Lambda\)</span> is tuned so that <span class="math notranslate nohighlight">\(\Delta k_{\text{eff}} \approx 0\)</span>.</p></li>
+</ul>
+</section>
+<section id="angle-phase-matching-apm">
+<h2>Angle Phase Matching (APM)<a class="headerlink" href="#angle-phase-matching-apm" title="Link to this heading">#</a></h2>
+<p>Angle phase matching is a method to fulfill the phase-matching condition in birefringent nonlinear crystals by exploiting their angularly dependent refractive indices. Unlike quasi-phase matching, this technique does not require periodic poling, but instead involves orienting the crystal at a specific angle to the pump beam.</p>
+<section id="phase-matching-condition">
+<h3>Phase-Matching Condition<a class="headerlink" href="#phase-matching-condition" title="Link to this heading">#</a></h3>
+<p>The momentum conservation (phase-matching) condition for collinear SPDC is</p>
+<div class="math notranslate nohighlight">
+\[\vec{k}_p = \vec{k}_s + \vec{k}_i\]</div>
+<p>This implies that the refractive indices of the interacting waves must satisfy</p>
+<div class="math notranslate nohighlight">
+\[n_p(\theta) \cdot \omega_p
+=
+n_s \cdot \omega_s
++
+n_i \cdot \omega_i\]</div>
+<p>Since birefringent crystals have polarization- and angle-dependent refractive indices, adjusting the internal angle <span class="math notranslate nohighlight">\(\theta\)</span> can allow this condition to be satisfied.</p>
+</section>
+<section id="effective-refractive-index-in-uniaxial-crystals">
+<h3>Effective Refractive Index in Uniaxial Crystals<a class="headerlink" href="#effective-refractive-index-in-uniaxial-crystals" title="Link to this heading">#</a></h3>
+<p>In uniaxial crystals like <strong>BBO</strong>, the refractive index for extraordinary-polarized light depends on the angle <span class="math notranslate nohighlight">\(\theta\)</span> between the optical axis and the propagation direction:</p>
+<div class="math notranslate nohighlight">
+\[\frac{1}{n_e^2(\theta)}
+=
+\frac{\cos^2(\theta)}{n_o^2}
++
+\frac{\sin^2(\theta)}{n_e^2}\]</div>
+<p>where</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(n_o\)</span> — ordinary refractive index (independent of angle)</p></li>
+<li><p><span class="math notranslate nohighlight">\(n_e\)</span> — extraordinary refractive index (along the optical axis)</p></li>
+<li><p><span class="math notranslate nohighlight">\(n_e(\theta)\)</span> — effective refractive index for the extraordinary ray</p></li>
+</ul>
+<p>This allows precise tuning of the pump's effective index to match the phase-matching condition by rotating the crystal.</p>
+</section>
+<section id="effective-refractive-index-in-biaxial-crystals">
+<h3>Effective Refractive Index in Biaxial Crystals<a class="headerlink" href="#effective-refractive-index-in-biaxial-crystals" title="Link to this heading">#</a></h3>
+<p>In biaxial crystals like <strong>BiBO</strong>, the situation is more complex due to two optic axes and three principal refractive indices: <span class="math notranslate nohighlight">\(n_x, n_y, n_z\)</span>.</p>
+<div class="math notranslate nohighlight">
+\[\frac{\cos^2(\theta)\cos^2(\phi)}{n_x^2}
++
+\frac{\cos^2(\theta)\sin^2(\phi)}{n_y^2}
++
+\frac{\sin^2(\theta)}{n_z^2}
+=
+\frac{1}{n_{\text{eff}}^2(\theta,\phi)}\]</div>
+<p>where</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(n_x, n_y, n_z\)</span> are the <strong>principal refractive indices</strong> of the biaxial crystal along the orthogonal crystal axes.</p></li>
+<li><p><span class="math notranslate nohighlight">\(\theta\)</span> is the <strong>internal polar angle</strong>, measured from the crystal <span class="math notranslate nohighlight">\(z\)</span>-axis.</p></li>
+<li><p><span class="math notranslate nohighlight">\(\phi\)</span> is the <strong>internal azimuthal angle</strong>, measured in the plane perpendicular to the <span class="math notranslate nohighlight">\(z\)</span>-axis.</p></li>
+</ul>
+<p>Together, <span class="math notranslate nohighlight">\(\theta\)</span> and <span class="math notranslate nohighlight">\(\phi\)</span> specify the <strong>propagation direction of light inside the crystal</strong>, and this direction determines the effective refractive index experienced by each polarization mode.</p>
+<p>Angle phase matching thus provides a tunable method for satisfying the momentum conservation condition by exploiting the intrinsic birefringence of nonlinear crystals.</p>
+</section>
+</section>
+<section id="quasi-phase-matching-qpm">
+<h2>Quasi-Phase Matching (QPM)<a class="headerlink" href="#quasi-phase-matching-qpm" title="Link to this heading">#</a></h2>
+<p>In materials like periodically-poled KTP (ppKTP), exact phase matching is not naturally possible due to fixed dispersion properties. Instead, QPM uses periodic inversion of the nonlinear susceptibility <span class="math notranslate nohighlight">\(\chi^{(2)}\)</span> every coherence length <span class="math notranslate nohighlight">\(l_c\)</span>.</p>
+<p>This effectively flips the phase of the downconverted wave and maintains constructive interference over long distances.</p>
+<p>In this case, the phase mismatch is compensated by an engineered grating vector</p>
+<div class="math notranslate nohighlight">
+\[\Delta K \approx \frac{2\pi}{\Lambda}\]</div>
+<p>where <span class="math notranslate nohighlight">\(\Lambda\)</span> is the poling period.</p>
+<p>The modified phase matching condition becomes</p>
+<div class="math notranslate nohighlight">
+\[k_p \approx k_s + k_i + \Delta K\]</div>
+<p>This enables efficient SPDC even in materials without natural birefringent phase matching.</p>
+</section>
+</section>
+
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="01_overview.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">PhotonPairLab documentation</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="03_theory_hom.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Hong–Ou–Mandel Interference</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#energy-conservation">Energy conservation</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#momentum-conservation">Momentum conservation</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#pump-pulse-envelope-ppe">Pump Pulse Envelope (PPE)</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#phase-matching-function-pmf">Phase Matching Function (PMF)</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#phase-matching-techniques">Phase Matching Techniques</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#angle-phase-matching-apm">Angle Phase Matching (APM)</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#phase-matching-condition">Phase-Matching Condition</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#effective-refractive-index-in-uniaxial-crystals">Effective Refractive Index in Uniaxial Crystals</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#effective-refractive-index-in-biaxial-crystals">Effective Refractive Index in Biaxial Crystals</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#quasi-phase-matching-qpm">Quasi-Phase Matching (QPM)</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Nico Sieber
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  <p class="copyright">
+    
+      © Copyright 2026, Nico Sieber.
+      <br/>
+    
+  </p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
+<script src="_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>
