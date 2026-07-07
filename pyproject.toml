@@ -12,7 +12,8 @@ dependencies = [
     "ipykernel",
     "numpy",
     "scipy",
-    "matplotlib"
+    "matplotlib",
+    "pillow>=12.3.0"
 ]
 [project.urls]
 LinkedIn = "https://www.linkedin.com/in/nico-sieber-0a7204156"
