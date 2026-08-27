@@ -193,3 +193,8 @@ PhotonPairLab is inspired by the needs of quantum optics research and is open fo
 ---
 
 **For a full walkthrough with theory and worked examples, see [`notebooks/demo.ipynb`](notebooks/demo.ipynb).**
+
+---
+
+## Getting in contact
+If you want to reach out to me, you can do so by contacting me on [LinkedIn](https://www.linkedin.com/in/nico-sieber-0a7204156/).
