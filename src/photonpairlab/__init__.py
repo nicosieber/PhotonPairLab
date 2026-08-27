@@ -1,8 +1,7 @@
 from .crystal import Crystal
 from .crystal.material import MaterialFactory
 from .laser import BaseLaser, CWLaser, PulsedLaser
-from .spdc import SPDC_Simulation, SpectralAnalyzer, HOMAnalyzer, SPDC_Plotter
-from .spdc.spdc_config import SPDCGridConfig
+from .spdc import SPDC_Simulation, SPDCGridConfig, SpectralAnalyzer, HOMAnalyzer, SPDC_Plotter
 from .quickstart import simulate_spdc
 
 __all__ = [

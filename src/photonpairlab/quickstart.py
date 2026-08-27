@@ -13,9 +13,7 @@ from photonpairlab.crystal.material import MaterialFactory
 from photonpairlab.crystal.phasematching import SPDCType, PolingMode
 from photonpairlab.crystal.crystal import PMStrategyName
 from photonpairlab.laser import PulsedLaser
-from photonpairlab.spdc.simulation import SPDC_Simulation
-from photonpairlab.spdc.spdc_config import SPDCGridConfig
-from photonpairlab.spdc.spdc_results import SPDCResults
+from photonpairlab.spdc.simulation import SPDC_Simulation, SPDCGridConfig, SPDCResults
 
 
 def simulate_spdc(

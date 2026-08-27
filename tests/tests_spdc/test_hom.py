@@ -4,9 +4,8 @@ import pytest
 from photonpairlab.crystal import Crystal
 from photonpairlab.crystal.material.material_factory import MaterialFactory
 from photonpairlab.laser import PulsedLaser
-from photonpairlab.spdc.spdc_config import SPDCGridConfig
-from photonpairlab.spdc.simulation import SPDC_Simulation
-from photonpairlab.spdc.hom_analyser import HOMAnalyzer
+from photonpairlab.spdc.simulation import SPDC_Simulation, SPDCGridConfig
+from photonpairlab.spdc.analysis import HOMAnalyzer
 
 
 def _make_results(wavelength_signal, wavelength_idler, steps=20, dev_nm=3.0):

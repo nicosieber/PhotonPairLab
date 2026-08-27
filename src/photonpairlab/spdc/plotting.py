@@ -3,69 +3,169 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 from matplotlib.ticker import MaxNLocator
 
-from photonpairlab.spdc.hom_utils import gaussian
-from photonpairlab.spdc.spdc_results import SPDCResults
-from photonpairlab.spdc.spectral_analyser import SpectralAnalyzer
+from photonpairlab.spdc.analysis.fitting import gaussian
+from photonpairlab.spdc.simulation.results import SPDCResults
+from photonpairlab.spdc.analysis.spectral_analyser import SpectralAnalyzer
+from photonpairlab.spdc.analysis.two_mode_hom_results import TwoModeHOMResults
+
+# Modern light-mode chart palette: neutral chart chrome plus a colorblind-validated
+# categorical series order (fixed assignment order -- never cycle/reorder per-plot).
+_SURFACE = "#fcfcfb"
+_GRID = "#e1e0d9"
+_BASELINE = "#c3c2b7"
+_PRIMARY_INK = "#0b0b0b"
+_SECONDARY_INK = "#52514e"
+_MUTED_INK = "#898781"
+
+_SERIES_COLORS = [
+    "#2a78d6",  # blue
+    "#eb6834",  # orange
+    "#1baf7a",  # aqua
+    "#eda100",  # yellow
+    "#e87ba4",  # magenta
+    "#008300",  # green
+    "#4a3aa7",  # violet
+    "#e34948",  # red
+]
+
+
+def _style_axes(ax, grid=True):
+    """Apply the shared modern chart style: light surface, recessive gridlines/spines, muted ink."""
+    ax.set_facecolor(_SURFACE)
+    ax.set_axisbelow(True)
+    if grid:
+        ax.grid(True, color=_GRID, linewidth=0.9)
+    else:
+        ax.grid(False)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.spines["left"].set_color(_BASELINE)
+    ax.spines["bottom"].set_color(_BASELINE)
+    ax.tick_params(colors=_MUTED_INK, labelsize=9)
+    ax.xaxis.label.set_color(_SECONDARY_INK)
+    ax.yaxis.label.set_color(_SECONDARY_INK)
+    ax.title.set_color(_PRIMARY_INK)
+
+
+def _style_legend(ax):
+    legend = ax.legend(frameon=False, labelcolor=_SECONDARY_INK)
+    return legend
+
 
 class SPDC_Plotter:
+    #: Colorblind-validated categorical series colors, in fixed assignment order.
+    SERIES_COLORS = _SERIES_COLORS
+
     def __init__(self,  results: SPDCResults):
         self.results = results
-    
-    def plot_schmidt_coefficients(self, fitting_function=gaussian,font_size=12):
-        # Schmidt coefficients
-        # Analyze the results
+
+    @staticmethod
+    def style_axes(ax, grid=True):
+        """
+        Apply the shared modern chart style (light surface, recessive gridlines/spines,
+        muted ink) to an arbitrary matplotlib ``Axes``.
+
+        Exposed as a public helper so one-off plots (e.g. in a notebook) can match the
+        look of the plots produced by this class without duplicating the style constants.
+        """
+        _style_axes(ax, grid=grid)
+
+    def plot_schmidt_coefficients(self, n_coefficients=20, fig=None, ax=None, font_size=12):
+        """
+        Plot the Schmidt-coefficient histogram from this result's Schmidt decomposition.
+
+        Parameters
+        ----------
+        n_coefficients : int
+            Number of leading Schmidt coefficients to show (clipped to however many exist).
+        fig, ax : matplotlib Figure/Axes, optional
+            Existing figure/axes to draw into (e.g. one panel of a larger figure you're
+            composing yourself). Both or neither must be given.
+
+        Returns
+        -------
+        (fig, ax)
+
+        See Also
+        --------
+        plot_signal_idler_spectra : the signal/idler marginal-spectra plot, previously
+            bundled into this method as a second panel -- now separate so callers can use
+            either, both, or neither, in whatever layout they want.
+        """
         analyzer = SpectralAnalyzer(self.results)
-
-        # Perform Schmidt decomposition
         s_vals, Purity, _ = analyzer.schmidt_decomposition()
-        fig = plt.figure()
-        ax1 = fig.add_subplot(211)
-        ax1.bar(np.arange(20), s_vals[0:20], align="center", alpha=0.75)
-        ax1.grid(True)
-        ax1.set_ylabel("Schmidt Coefficients", fontsize=font_size)
-        title = f"Schmidt Decomposition of the JSA - Resulting purity: {round(Purity,2)}"
-        ax1.set_title(title, fontsize=font_size)
 
-        # Fitting joint spectral intensity
-        # Create subplot for fits and plots for idler and signal
-        ax2 = fig.add_subplot(212)
-        # Get the signal and idler fits
+        if fig is None and ax is None:
+            fig, ax = plt.subplots(facecolor=_SURFACE)
+        elif fig is not None and ax is not None:
+            pass
+        else:
+            raise ValueError("Both fig and ax must be either None or provided together.")
+
+        n = min(n_coefficients, len(s_vals))
+        ax.bar(np.arange(n), s_vals[:n], align="center", color=_SERIES_COLORS[0], width=0.7, zorder=3)
+        ax.set_ylabel("Schmidt Coefficients", fontsize=font_size)
+        ax.set_title(f"Schmidt Decomposition of the JSA - Resulting purity: {round(Purity, 2)}", fontsize=font_size)
+        _style_axes(ax)
+
+        return fig, ax
+
+    def plot_signal_idler_spectra(self, fitting_function=gaussian, fig=None, ax=None, font_size=12):
+        """
+        Plot the signal/idler marginal spectra (the JSI summed over the other photon's
+        wavelength), each with ``fitting_function`` fitted and overlaid.
+
+        Parameters
+        ----------
+        fitting_function : callable
+            Passed through to :meth:`SpectralAnalyzer.get_signal_idler_fits`.
+        fig, ax : matplotlib Figure/Axes, optional
+            Existing figure/axes to draw into. Both or neither must be given.
+
+        Returns
+        -------
+        (fig, ax)
+        """
+        analyzer = SpectralAnalyzer(self.results)
         signal_fit, idler_fit, (signal_wavelenghts, signal_intensities), (idler_wavelengths, idler_intensities) = analyzer.get_signal_idler_fits(fitting_function)
 
-        # Fit and plot the signal data
-        ax2.plot(signal_wavelenghts, signal_intensities, "bo", markersize=4)
-        # Use curve_fit to fit the Gaussian function to the data
-        ax2.plot(signal_wavelenghts, fitting_function(signal_wavelenghts, *signal_fit), linestyle="--", color="orange")
-        # Fit and plot the idler data
-        ax2.plot(idler_wavelengths, idler_intensities, "r^", markersize=4)
-        # Fit the idler data using curve_fit
-        ax2.plot(idler_wavelengths, fitting_function(idler_wavelengths, *idler_fit), linestyle="--", color="green")
+        if fig is None and ax is None:
+            fig, ax = plt.subplots(facecolor=_SURFACE)
+        elif fig is not None and ax is not None:
+            pass
+        else:
+            raise ValueError("Both fig and ax must be either None or provided together.")
 
-        # Formatting the plot
-        ax2.grid(True)
-        ax2.set_xlim(left=np.amin(signal_wavelenghts), right=np.amax(signal_wavelenghts))
-        ax2.set_xlabel("wavelength (nm)")
-        ax2.set_ylabel("normalized amplitude", fontsize=font_size)
-        ax2.set_title("JSI Profiles", fontsize=font_size)
-        ax2.legend(["signal", "fit: signal", "idler", "fit: idler"])
-        plt.tight_layout(pad=1.2, w_pad=2, h_pad=2.0)
-        
-        return fig, (ax1, ax2)
-    
-    def plot_result(self, key="JSA", fig=None, ax=None, font_size=12, color_map=cm.viridis): # type: ignore
+        signal_color, idler_color = _SERIES_COLORS[0], _SERIES_COLORS[1]
+
+        ax.plot(signal_wavelenghts, signal_intensities, "o", color=signal_color, markersize=5, zorder=3)
+        ax.plot(signal_wavelenghts, fitting_function(signal_wavelenghts, *signal_fit), linestyle="--", color=signal_color, linewidth=2, zorder=3)
+        ax.plot(idler_wavelengths, idler_intensities, "^", color=idler_color, markersize=5, zorder=3)
+        ax.plot(idler_wavelengths, fitting_function(idler_wavelengths, *idler_fit), linestyle="--", color=idler_color, linewidth=2, zorder=3)
+
+        ax.set_xlim(left=np.amin(signal_wavelenghts), right=np.amax(signal_wavelenghts))
+        ax.set_xlabel("wavelength (nm)")
+        ax.set_ylabel("normalized amplitude", fontsize=font_size)
+        ax.set_title("JSI Profiles", fontsize=font_size)
+        ax.legend(["signal", "fit: signal", "idler", "fit: idler"], frameon=False, labelcolor=_SECONDARY_INK)
+        _style_axes(ax)
+
+        return fig, ax
+
+    def plot_result(self, key="JSA", fig=None, ax=None, font_size=12, color_map=cm.viridis, colorbar=True): # type: ignore
         number_ticklabels = 5
 
         signal_wavelengths = self.results.SignalWavelengths * 1e9
         idler_wavelengths = self.results.IdlerWavelengths * 1e9
 
         if fig is None and ax is None:
-            fig, axs = plt.subplots(1, 1, sharex=True, constrained_layout=False)
+            fig, axs = plt.subplots(1, 1, sharex=True, constrained_layout=False, facecolor=_SURFACE)
         elif fig is not None and ax is not None:
             axs = ax
             fig = fig
         else:
             raise ValueError("Both fig and ax must be either None or provided together.")
-        
+
         # JSA is complex (phase included); plot its magnitude like the other (already-real) keys.
         PLOT_KEY_HANDLER = {
             "Pump": self.results.Pump,
@@ -84,14 +184,69 @@ class SPDC_Plotter:
             cmap=color_map,
             extent=extent,
             origin='lower' # or 'upper' if you want to flip y
-            )  
+            )
         im.set_interpolation("bilinear")
-        
+
         axs.set_xlabel("signal wavelength (nm)", fontsize=font_size)
         axs.set_ylabel("idler wavelength (nm)", fontsize=font_size)
-  
-        axs.grid(False)
+
         axs.xaxis.set_major_locator(MaxNLocator(number_ticklabels))
         axs.yaxis.set_major_locator(MaxNLocator(number_ticklabels))
-        
+        _style_axes(axs, grid=False)
+        # imshow fills the whole axes frame; keep a thin neutral border instead of the
+        # (invisible, grid-only) hairline spines used elsewhere.
+        for spine in axs.spines.values():
+            spine.set_visible(True)
+            spine.set_color(_BASELINE)
+
+        if colorbar:
+            cbar = fig.colorbar(im, ax=axs, fraction=0.046, pad=0.04)
+            cbar.outline.set_visible(False)
+            cbar.ax.tick_params(colors=_MUTED_INK, labelsize=9)
+
         return fig, axs
+
+    @staticmethod
+    def plot_hom_dip(results, fig=None, ax=None, font_size=12):
+        """
+        Plot one or more Hong-Ou-Mandel coincidence-probability dips vs. relative delay.
+
+        Parameters
+        ----------
+        results : TwoModeHOMResults or Mapping[str, TwoModeHOMResults]
+            A single :class:`~photonpairlab.spdc.analysis.two_mode_hom_results.TwoModeHOMResults`
+            (from :meth:`~photonpairlab.spdc.analysis.hom_analyser.HOMAnalyzer.compute_two_mode_HOM`),
+            or a ``{label: TwoModeHOMResults}`` mapping to overlay multiple dips (e.g. comparing
+            sources).
+        fig, ax : matplotlib Figure/Axes, optional
+            Existing figure/axes to draw into. Both or neither must be given.
+
+        Returns
+        -------
+        (fig, ax)
+
+        Notes
+        -----
+        This is a ``staticmethod``: it plots whichever ``TwoModeHOMResults`` are passed in,
+        independent of any ``SPDC_Plotter`` instance's bound ``results``.
+        """
+        if isinstance(results, TwoModeHOMResults):
+            results = {"HOM dip": results}
+
+        if fig is None and ax is None:
+            fig, ax = plt.subplots(facecolor=_SURFACE)
+        elif fig is not None and ax is not None:
+            pass
+        else:
+            raise ValueError("Both fig and ax must be either None or provided together.")
+
+        for (label, hom_result), color in zip(results.items(), _SERIES_COLORS):
+            ax.plot(hom_result.tau_fs, hom_result.coincidence_probabilities, label=label, color=color, linewidth=2, zorder=3)
+
+        ax.set_xlabel("relative delay (fs)", fontsize=font_size)
+        ax.set_ylabel("coincidence probability", fontsize=font_size)
+        _style_axes(ax)
+        if len(results) > 1:
+            _style_legend(ax)
+
+        return fig, ax

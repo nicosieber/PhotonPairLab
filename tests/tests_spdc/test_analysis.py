@@ -3,9 +3,8 @@ import pytest
 from photonpairlab.crystal import Crystal
 from photonpairlab.crystal.material.material_factory import MaterialFactory
 from photonpairlab.laser import PulsedLaser
-from photonpairlab.spdc.spdc_config import SPDCGridConfig
-from photonpairlab.spdc.simulation import SPDC_Simulation
-from photonpairlab.spdc.spectral_analyser import SpectralAnalyzer
+from photonpairlab.spdc.simulation import SPDC_Simulation, SPDCGridConfig
+from photonpairlab.spdc.analysis import SpectralAnalyzer
 
 
 @pytest.fixture

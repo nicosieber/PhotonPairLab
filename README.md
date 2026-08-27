@@ -140,10 +140,17 @@ photonpairlab/
 │   ├── cw_laser.py
 │   └── pulsed_laser.py
 ├── spdc/
-│   ├── simulation.py
-│   ├── spectral_analyser.py
-│   ├── hom_analyser.py
-│   ├── plotting.py
+│   ├── simulation/
+│   │   ├── simulation.py            # SPDC_Simulation
+│   │   ├── config.py                # SPDCGridConfig/SPDCCenterConfig/SPDCRunConfig (pydantic)
+│   │   └── results.py               # SPDCResults
+│   ├── analysis/
+│   │   ├── spectral_analyser.py     # SpectralAnalyzer (Schmidt decomposition, marginals)
+│   │   ├── hom_analyser.py          # HOMAnalyzer
+│   │   ├── hom_math.py              # HOM density-matrix math
+│   │   ├── fitting.py               # shared curve-fit helpers (gaussian, quadratic, ...)
+│   │   └── two_mode_hom_results.py  # TwoModeHOMResults
+│   ├── plotting.py                  # SPDC_Plotter
 │   └── ...
 ├── quickstart.py                    # simulate_spdc(...)
 └── ...

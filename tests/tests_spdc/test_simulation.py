@@ -5,8 +5,7 @@ from photonpairlab.crystal import Crystal
 from photonpairlab.crystal.material.material_factory import MaterialFactory
 from photonpairlab.crystal.phasematching.qpm_strategy import QPMPhaseMatching
 from photonpairlab.laser import PulsedLaser
-from photonpairlab.spdc.spdc_config import SPDCGridConfig
-from photonpairlab.spdc.simulation import SPDC_Simulation
+from photonpairlab.spdc.simulation import SPDC_Simulation, SPDCGridConfig
 
 
 @pytest.fixture

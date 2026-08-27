@@ -1,23 +1,10 @@
 import numpy as np
 import pytest
 
-from photonpairlab.spdc.hom_utils import (
-    linear_fit,
-    linear_intersection_coordinates,
+from photonpairlab.spdc.analysis import (
     quadratic_fit,
     quadratic_intersection_coordinates,
 )
-
-
-def test_linear_intersection_recovers_known_crossing():
-    x = np.linspace(0, 10, 20)
-    y1 = 2.0 * x + 1.0
-    y2 = -1.0 * x + 16.0
-    popt1, _ = linear_fit(x, y1)
-    popt2, _ = linear_fit(x, y2)
-    x_int, y_int = linear_intersection_coordinates(*popt1, *popt2)
-    assert x_int == pytest.approx(5.0)
-    assert y_int == pytest.approx(11.0)
 
 
 def test_quadratic_intersection_recovers_known_crossing_with_curvature():

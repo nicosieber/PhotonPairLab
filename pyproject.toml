@@ -13,7 +13,8 @@ dependencies = [
     "numpy",
     "scipy",
     "matplotlib",
-    "pillow>=12.3.0"
+    "pillow>=12.3.0",
+    "pydantic>=2.13.4",
 ]
 [project.urls]
 LinkedIn = "https://www.linkedin.com/in/nico-sieber-0a7204156"

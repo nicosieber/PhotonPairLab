@@ -1,8 +1,8 @@
 import numpy as np
 
-from photonpairlab.spdc.hom_utils import hom_dip_vs_delay
-from photonpairlab.spdc.spdc_results import SPDCResults
-from photonpairlab.spdc.two_mode_hom_results import TwoModeHOMResults
+from photonpairlab.spdc.analysis.hom_math import hom_dip_vs_delay
+from photonpairlab.spdc.simulation.results import SPDCResults
+from photonpairlab.spdc.analysis.two_mode_hom_results import TwoModeHOMResults
 
 
 class HOMAnalyzer:

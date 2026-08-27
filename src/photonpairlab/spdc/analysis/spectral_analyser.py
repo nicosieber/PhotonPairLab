@@ -2,8 +2,8 @@ import numpy as np
 from scipy.optimize import curve_fit
 from inspect import signature
 
-from photonpairlab.spdc.hom_utils import gaussian
-from photonpairlab.spdc.spdc_results import SPDCResults
+from photonpairlab.spdc.analysis.fitting import gaussian
+from photonpairlab.spdc.simulation.results import SPDCResults
 
 
 class SpectralAnalyzer:

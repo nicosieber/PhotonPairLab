@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from photonpairlab.quickstart import simulate_spdc
-from photonpairlab.spdc.spdc_config import SPDCGridConfig
+from photonpairlab.spdc.simulation import SPDCGridConfig
 
 
 def test_simulate_spdc_degenerate_default_peaks_at_twice_pump_wavelength():

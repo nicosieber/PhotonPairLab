@@ -6,8 +6,7 @@ import pytest
 from photonpairlab.crystal import Crystal
 from photonpairlab.crystal.material.material_factory import MaterialFactory
 from photonpairlab.laser import PulsedLaser
-from photonpairlab.spdc.spdc_config import SPDCGridConfig
-from photonpairlab.spdc.simulation import SPDC_Simulation
+from photonpairlab.spdc.simulation import SPDC_Simulation, SPDCGridConfig
 from photonpairlab.spdc.plotting import SPDC_Plotter
 
 
@@ -39,5 +38,33 @@ def test_plot_result_renders_for_each_key(results, key):
 
 def test_plot_schmidt_coefficients_renders(results):
     plotter = SPDC_Plotter(results)
-    fig = plotter.plot_schmidt_coefficients()
+    fig, ax = plotter.plot_schmidt_coefficients()
     assert fig is not None
+    assert ax is not None
+
+
+def test_plot_schmidt_coefficients_respects_n_coefficients(results):
+    plotter = SPDC_Plotter(results)
+    fig, ax = plotter.plot_schmidt_coefficients(n_coefficients=5)
+    assert len(ax.patches) == 5
+
+
+def test_plot_signal_idler_spectra_renders(results):
+    plotter = SPDC_Plotter(results)
+    fig, ax = plotter.plot_signal_idler_spectra()
+    assert fig is not None
+    assert ax is not None
+
+
+def test_schmidt_and_spectra_plots_compose_into_one_figure(results):
+    # The two plots used to be forced into one fixed 2-panel figure; they must still be
+    # freely composable into any layout via the shared fig/ax pattern.
+    import matplotlib.pyplot as plt
+
+    plotter = SPDC_Plotter(results)
+    fig = plt.figure()
+    ax1 = fig.add_subplot(211)
+    ax2 = fig.add_subplot(212)
+    plotter.plot_schmidt_coefficients(fig=fig, ax=ax1)
+    plotter.plot_signal_idler_spectra(fig=fig, ax=ax2)
+    assert fig.axes == [ax1, ax2]
