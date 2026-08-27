@@ -32,7 +32,7 @@ cd PhotonPairLab
 pip install -e .
 ```
 
-If you use [uv](https://docs.astral.sh/uv/), `./devinstall.zsh` does the same via `uv pip install -e .`.
+If you use [uv](https://docs.astral.sh/uv/), `uv pip install -e .` does the same.
 
 ---
 
