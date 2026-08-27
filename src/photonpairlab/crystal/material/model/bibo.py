@@ -1,5 +1,5 @@
 import numpy as np
-from typing import Any, Optional
+from typing import Any
 
 from .base_material_model import BaseMaterialModel
 
@@ -72,9 +72,16 @@ class BIBO(BaseMaterialModel):
         temperature=25, # Used for QPM
         **kwargs # Additional parameters for future extensions
     ):
-        # Implement the thermal expansion calculation based on the selected model
-        if self.material.thermal_expansion is None:
-            expanded_length = length
-            return expanded_length
-        else:
-            raise NotImplementedError("Thermal expansion not implemented for BIBO.")
+        te = self.material.thermal_expansion
+        if te is None:
+            return length
+
+        if not isinstance(te.data, dict) or axis not in te.data:
+            raise ValueError(f"Thermal expansion coefficients for axis '{axis}' not found in '{self.material.name}'")
+
+        coeffs = te.data[axis]
+        alpha = float(coeffs["alpha"])
+        beta = float(coeffs["beta"])
+
+        dT = float(temperature) - 25.0
+        return float(length) * (1.0 + alpha * dT + beta * dT**2)

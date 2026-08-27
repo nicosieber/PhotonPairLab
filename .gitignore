@@ -10,3 +10,9 @@ photonpairlab.egg-info/
 *.log
 *.csv       
 .DS_Store
+CLAUDE.md
+.claude
+.pytest_cache
+.venv
+uv.lock
+devinstall.zsh

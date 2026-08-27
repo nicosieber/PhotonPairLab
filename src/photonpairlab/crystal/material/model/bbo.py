@@ -1,5 +1,5 @@
 import numpy as np  
-from typing import Any, Optional
+from typing import Any
 
 from .base_material_model import BaseMaterialModel
 
@@ -29,7 +29,7 @@ class BBO(BaseMaterialModel):
         """
         try:
             coeffs: dict[str, Any] = self.material.sellmeier.data[axis]
-        except Exception as e:
+        except (KeyError, TypeError) as e:
             raise ValueError(f"Sellmeier coefficients for axis '{axis}' not found in '{self.material.name}'.") from e
         l2 = lambda_um**2
         return np.sqrt(
@@ -41,7 +41,7 @@ class BBO(BaseMaterialModel):
         ne = self.refractive_index(lambda_um, axis="e")
         theta = np.radians(theta_deg)
         return 1 / np.sqrt(
-            (np.cos(theta)**2 / ne**2) + (np.sin(theta)**2 / no**2)
+            (np.cos(theta)**2 / no**2) + (np.sin(theta)**2 / ne**2)
         )
     
     def thermal_expansion(
@@ -51,10 +51,16 @@ class BBO(BaseMaterialModel):
         temperature=25, # Used for QPM
         **kwargs # Additional parameters for future extensions
     ):
-        # Implement the thermal expansion calculation based on the selected model
+        te = self.material.thermal_expansion
+        if te is None:
+            return length
 
-        if self.material.thermal_expansion is None:
-            expanded_length = length
-            return expanded_length
-        else:
-            raise NotImplementedError("Thermal expansion not implemented for BIBO.")
+        if not isinstance(te.data, dict) or axis not in te.data:
+            raise ValueError(f"Thermal expansion coefficients for axis '{axis}' not found in '{self.material.name}'")
+
+        coeffs = te.data[axis]
+        alpha = float(coeffs["alpha"])
+        beta = float(coeffs["beta"])
+
+        dT = float(temperature) - 25.0
+        return float(length) * (1.0 + alpha * dT + beta * dT**2)

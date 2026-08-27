@@ -38,7 +38,7 @@ class KatoTakaokaSellmeierThermalModel(BaseMaterialModel):
 
         try:
             coeffs: dict[str, Any] = self.material.sellmeier.data[axis]
-        except Exception as e:
+        except (KeyError, TypeError) as e:
             raise ValueError(f"Sellmeier coefficients for axis '{axis}' not found in '{self.material.name}'.") from e
 
         A = float(coeffs["A"])

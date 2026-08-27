@@ -12,7 +12,7 @@ class SpectralAnalyzer:
 
     def schmidt_decomposition(self):
         JSA = self.results.JSA
-        _, s_vals, _ = np.linalg.svd(JSA / np.amax(JSA), full_matrices=True)
+        _, s_vals, _ = np.linalg.svd(JSA / np.amax(np.abs(JSA)), full_matrices=True)
         s_vals = s_vals / np.sqrt(np.sum(s_vals ** 2))
         Purity = np.sum(s_vals ** 4)
         K = 1 / Purity
@@ -165,8 +165,8 @@ class SpectralAnalyzer:
                 fitting_function=fitting_function,
                 fit_fraction=0.3,
             )
-        except Exception as e:
-            raise RuntimeError(f"Error fitting signal data: {e}")
+        except (RuntimeError, ValueError, TypeError) as e:
+            raise RuntimeError(f"Error fitting signal data: {e}") from e
 
         try:
             idler_fit, _ = self._fit_peak_region(
@@ -175,8 +175,8 @@ class SpectralAnalyzer:
                 fitting_function=fitting_function,
                 fit_fraction=0.3,
             )
-        except Exception as e:
-            raise RuntimeError(f"Error fitting idler data: {e}")
+        except (RuntimeError, ValueError, TypeError) as e:
+            raise RuntimeError(f"Error fitting idler data: {e}") from e
 
         return (
             signal_fit,

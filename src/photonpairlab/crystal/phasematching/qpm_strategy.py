@@ -1,15 +1,15 @@
 import numpy as np
-from .base_pm_strategy import PhaseMatchingStrategy
+from .base_pm_strategy import PhaseMatchingStrategy, SPDCType, PolingMode
 from .pm_result import PhaseMismatchResult
 from ..material.base_material import BaseMaterial
-from photonpairlab.laser import *
+from photonpairlab.laser import BaseLaser
 
 class QPMPhaseMatching(PhaseMatchingStrategy):
     """
     Quasi Phase-Matching (QPM) strategy for nonlinear crystals.
     """
 
-    def __init__(self, material: BaseMaterial, spdc_type: str = "type-II", phi_deg: float = 0.0):
+    def __init__(self, material: BaseMaterial, spdc_type: SPDCType = "type-II", phi_deg: float = 0.0):
         super().__init__(material, spdc_type)
         self.phi_deg = phi_deg  # Used for biaxial crystals
 
@@ -49,9 +49,9 @@ class QPMPhaseMatching(PhaseMatchingStrategy):
         
     
 
-    def generate_poling(self, crystal_length: float, 
-                        T: float, 
-                        mode: str, 
+    def generate_poling(self, crystal_length: float,
+                        T: float,
+                        mode: PolingMode,
                         laser: BaseLaser,
                         wavelength_signal: float,
                         wavelength_idler: float,
@@ -99,18 +99,18 @@ class QPMPhaseMatching(PhaseMatchingStrategy):
         """
         temperature_adjusted_length = self.material.thermal_expansion(length=crystal_length, axis="z", temperature=T)
         num_domains = int(np.floor(crystal_length / coherence_length))
-        # Create the polarizations array using np.tile
-        polarizations = np.tile([1, -1], num_domains)
+        # Create the polarizations array with one alternating-sign entry per domain
+        # (np.resize repeats [1, -1] and truncates to exactly num_domains entries;
+        # np.tile would double the domain count and halve the realized domain width).
+        polarizations = np.resize([1, -1], num_domains)
         # Create the poling pattern using np.repeat
         poling_pattern = np.repeat(polarizations, resolution)
-        # Adjust crystal_length to be an integer multiple of coherence_length
-        crystal_length = num_domains * coherence_length
         # Calculate z values directly based on the length of poling_pattern
         z = np.linspace(-temperature_adjusted_length / 2,
                         temperature_adjusted_length / 2,
                         len(poling_pattern))
         return poling_pattern, z, temperature_adjusted_length
-    
+
     def _generate_constant_poling(self, crystal_length, T, coherence_length, resolution=5):
         """
         Generates a constant poling structure for the crystal.
@@ -129,12 +129,10 @@ class QPMPhaseMatching(PhaseMatchingStrategy):
         """
         temperature_adjusted_length = self.material.thermal_expansion(length=crystal_length, axis="z", temperature=T)
         num_domains = int(np.floor(crystal_length / coherence_length))
-        # Create the polarizations array using np.tile
-        polarizations = np.tile([1, 1], num_domains)
+        # Create the polarizations array with one entry per domain (see _generate_periodic_poling)
+        polarizations = np.resize([1, 1], num_domains)
         # Create the poling pattern using np.repeat
         poling_pattern = np.repeat(polarizations, resolution)
-        # Adjust crystal_length to be an integer multiple of coherence_length
-        crystal_length = num_domains * coherence_length
         # Calculate z values directly based on the length of poling_pattern
         z = np.linspace(-temperature_adjusted_length / 2,
                         temperature_adjusted_length / 2,
@@ -180,61 +178,41 @@ class QPMPhaseMatching(PhaseMatchingStrategy):
         """
         if wavelength_signal is None or wavelength_idler is None:
             raise ValueError("Both wavelength_signal and wavelength_idler must be provided for sub-coherence poling generation.")
-        
-        
+
         # Proceed with the apodization algorithm using self.DeltaK_0
 
-        mstart = 2
         temperature_adjusted_length = self.material.thermal_expansion(length=crystal_length, axis="z", temperature=T)
-        DeltaK = self.delta_k(angle=None, laser=laser, 
+        # angle=0 matches the default angle_pm used elsewhere in QPM (collinear, on-axis
+        # propagation); passing None crashes for any SPDC type using 'e' polarization,
+        # since effective_refractive_index requires a numeric angle.
+        DeltaK = self.delta_k(angle=0, laser=laser,
                               wavelength_signal=wavelength_signal, wavelength_idler=wavelength_idler, T=T)
 
-        num_iterations = int(np.ceil(temperature_adjusted_length / w)) + 1 # Total number of iterations
+        num_domains = int(np.ceil(temperature_adjusted_length / w))
+        poling_pattern = np.zeros(num_domains, dtype=int)
 
-        # Precompute altered_z
-        altered_z = np.linspace(0, num_iterations * w, num_iterations + 1)
-        # Initialize poling_pattern
-        poling_pattern = np.zeros(num_iterations + 1, dtype=int)
-        poling_pattern[0] = -1
-        target_amplitudes = np.zeros(num_iterations, dtype=complex)
-        amuparray = np.zeros(num_iterations, dtype=complex)
-        amdownarray = np.zeros(num_iterations, dtype=complex)
-
-        for idx in range(num_iterations):
-            m = mstart + idx
-
-            # Compute target_amplitude once per iteration
+        # Arbitrary-small-domains method (Graffitti et al. 2017, Appendix A): starting
+        # from an empty domain list, greedily choose each domain's sign (up/down) by
+        # minimizing e_m = |A_target(m*w) - A_m({s_n})| (Eq. 10), one domain at a time
+        # from the very first domain onward -- there is no "seed" domain fixed in advance,
+        # since every later decision depends on the accumulated history of prior choices.
+        for m in range(1, num_domains + 1):
+            idx = m - 1
             at = self.target_amplitude(w, m, temperature_adjusted_length, coherence_length, DeltaK)
 
-            # Test with poling_pattern[idx + 1] = 1 (up)
-            poling_pattern[idx + 1] = 1
-            amup = self.Am(w, altered_z[: idx + 2], m, coherence_length, poling_pattern[: idx + 2])
+            poling_pattern[idx] = 1
+            amup = self.Am(w, m, coherence_length, poling_pattern[:m])
 
-            # Test with poling_pattern[idx + 1] = -1 (down)
-            poling_pattern[idx + 1] = -1
-            amdown = self.Am(w, altered_z[: idx + 2], m, coherence_length, poling_pattern[: idx + 2])
+            poling_pattern[idx] = -1
+            amdown = self.Am(w, m, coherence_length, poling_pattern[:m])
 
-            # Compute errors
             eup = np.abs(at - amup)
             edown = np.abs(at - amdown)
 
-            # Store results
-            target_amplitudes[idx] = at
-            amuparray[idx] = amup
-            amdownarray[idx] = amdown
+            poling_pattern[idx] = 1 if eup < edown else -1
 
-            # Decide which orientation minimizes the error
-            if eup < edown:
-                poling_pattern[idx + 1] = 1  # Keep 'up' orientation
-            else:
-                poling_pattern[idx + 1] = -1  # Keep 'down' orientation
-
-        poling_pattern = poling_pattern
-        target_amplitudes = target_amplitudes
-        amuparray = amuparray
-        amdownarray = amdownarray
-        altered_z = altered_z
-        z = altered_z - temperature_adjusted_length / 2
+        # z-position of each domain's right edge (w, 2w, ..., num_domains*w), centered on 0.
+        z = np.arange(1, num_domains + 1) * w - temperature_adjusted_length / 2
         return poling_pattern, z, temperature_adjusted_length
 
     def gtarget(self, z, L, coherence_length):
@@ -246,23 +224,43 @@ class QPMPhaseMatching(PhaseMatchingStrategy):
 
     def target_amplitude(self, w, m, L, coherence_length, DeltaK):
         """
-        Computes the target amplitude for a given set of parameters.
-        
+        Target field amplitude after m domains of width w (Graffitti et al. 2017, Eq. 5),
+        for a target nonlinearity g_target(z) = g(z)*cos(pi z/coherence_length).
+
+        Expanding cos(Kz)*exp(i*DeltaK*z) = 1/2 exp(i(DeltaK+K)z) + 1/2 exp(i(DeltaK-K)z)
+        (K = pi/coherence_length), only the near-resonant term (whichever combination is
+        closest to zero frequency) is kept -- this is what Eq. 7 does analytically
+        ("ignoring the quickly oscillating terms"). The other term oscillates with
+        period ~2*coherence_length, i.e. on the same scale as the domain width itself
+        for sub-coherence-length domains, so a discrete sum over z = w, 2w, ..., m*w
+        cannot reliably average it out numerically; it must be dropped analytically
+        instead, or it leaks into the target as spurious high-frequency structure.
+
+        z runs over domain *right edges* w, 2w, ..., m*w, matching the convention
+        used in Am's Eq. 9 sum (domain n occupies ((n-1)w, nw]).
         """
-        z = np.linspace(0, m * w, num=m)
-        g = self.gtarget(z, L, coherence_length / 2)
-        cos_term = np.cos(np.pi / (coherence_length / 2) * z)
-        exp_term = np.exp(1j * DeltaK * z)
-        y = g * cos_term * exp_term
+        z = np.arange(1, m + 1) * w
+        g = self.gtarget(z, L, coherence_length)
+        K = np.pi / coherence_length
+        freq_plus = DeltaK + K
+        freq_minus = DeltaK - K
+        freq = freq_plus if abs(freq_plus) < abs(freq_minus) else freq_minus
+        y = 0.5 * g * np.exp(1j * freq * z)
         return -1j * np.trapezoid(y, z)
 
-    def Am(self, w, altered_z, m, coherence_length, sn):
+    def Am(self, w, m, coherence_length, sn):
         """
-        Computes the amplitude modulation function Am for a given set of parameters.
+        Field amplitude generated by m domains of width w with signs sn, evaluated
+        at Delta k = pi/coherence_length (Graffitti et al. 2017, Eq. 9):
 
+            A_m = (coherence_length / pi) * (exp(-i*K*w) - 1) * sum_n sn[n] * exp(i*K*n*w)
+
+        with K = pi/coherence_length and n = 1, ..., m (domain n's right edge is n*w).
         """
         if len(sn) != m:
             raise ValueError("Poling array length wrong.")
-        exp_term = np.exp(1j * np.pi / (coherence_length / 2) * altered_z)
-        y = np.sum(sn * exp_term)
-        return coherence_length / (2 * np.pi) * (np.exp(-1j * np.pi / (coherence_length / 2) * w) - 1) * y
+        K = np.pi / coherence_length
+        n = np.arange(1, m + 1)
+        exp_term = np.exp(1j * K * n * w)
+        y = np.sum(np.asarray(sn) * exp_term)
+        return coherence_length / np.pi * (np.exp(-1j * K * w) - 1) * y

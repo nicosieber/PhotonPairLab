@@ -1,8 +1,7 @@
 from dataclasses import dataclass
-from typing import Optional, Tuple
 import numpy as np
 
-WavelengthRange = Tuple[float, float]
+WavelengthRange = tuple[float, float]
 
 @dataclass(frozen=True)
 class SPDCCenterConfig:
@@ -10,8 +9,8 @@ class SPDCCenterConfig:
     Center wavelengths for signal/idler used to compute phase mismatch and (if no explicit ranges)
     to build the grid around.
     """
-    wavelength_signal: Optional[float] = None
-    wavelength_idler: Optional[float] = None
+    wavelength_signal: float | None = None
+    wavelength_idler: float | None = None
 
 @dataclass(frozen=True)
 class SPDCGridConfig:
@@ -25,8 +24,8 @@ class SPDCGridConfig:
     steps: int = 100
     dev_nm: float = 5.0
 
-    signal_range: Optional[WavelengthRange] = None
-    idler_range: Optional[WavelengthRange] = None
+    signal_range: WavelengthRange | None = None
+    idler_range: WavelengthRange | None = None
 
     def uses_explicit_ranges(self) -> bool:
         return (self.signal_range is not None) or (self.idler_range is not None)

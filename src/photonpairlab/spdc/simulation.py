@@ -88,10 +88,10 @@ class SPDC_Simulation:
         Container for simulation outputs (JSA/JSI and wavelength axes).
     """
     def __init__(
-            self, crystal: Crystal, laser: BaseLaser, 
-            wavelength_signal: float | None=None, wavelength_idler : float | None=None, 
-            wavelength_signal_range: list[float | None] = [None, None], 
-            wavelength_idler_range: list[float | None] = [None, None],
+            self, crystal: Crystal, laser: BaseLaser,
+            wavelength_signal: float | None=None, wavelength_idler : float | None=None,
+            wavelength_signal_range: list[float | None] | None = None,
+            wavelength_idler_range: list[float | None] | None = None,
             grid: SPDCGridConfig | None = None,
                  ):
 
@@ -106,14 +106,20 @@ class SPDC_Simulation:
             self.wavelength_idler = laser.wavelength_pump * 2  # Default to twice the pump wavelength if not specified
         else:
             self.wavelength_idler = wavelength_idler
-        # Store the wavelengths and their ranges
-       
-        self.wavelength_signal_start = wavelength_signal_range[0]
-        self.wavelength_signal_end = wavelength_signal_range[1]
-        self.wavelength_idler_start = wavelength_idler_range[0]
-        self.wavelength_idler_end = wavelength_idler_range[1]
 
-        self.grid = grid or SPDCGridConfig()
+        wavelength_signal_range = wavelength_signal_range or [None, None]
+        wavelength_idler_range = wavelength_idler_range or [None, None]
+
+        if grid is not None:
+            self.grid = grid
+        elif wavelength_signal_range[0] is not None and wavelength_idler_range[0] is not None:
+            # Legacy interface: build the grid from the explicit signal/idler ranges.
+            self.grid = SPDCGridConfig(
+                signal_range=(wavelength_signal_range[0], wavelength_signal_range[1]),
+                idler_range=(wavelength_idler_range[0], wavelength_idler_range[1]),
+            )
+        else:
+            self.grid = SPDCGridConfig()
 
         # Initialize other parameters
         self.initialize_parameters()
@@ -147,10 +153,14 @@ class SPDC_Simulation:
         self.angular_bandwidth = bandwidth_wavelength_to_angular_bandwidth(self.laser.bandwidth_wavelength, self.laser.wavelength_pump)
         
         # xi_eff and z for simulation
+        # xi_eff[k] must correspond to the same physical position as z[k]; the poling
+        # pattern and z are generated together in matching order, so no reversal here
+        # (reversing one but not the other silently conjugates the phase-matching
+        # function's phase, which only matters once JSA carries phase information).
         pp = self.crystal.poling_pattern
         if pp is None:
             raise ValueError("Poling pattern is not generated in the crystal.")
-        self.xi_eff = np.flip(np.asarray(pp, dtype=np.float64)) 
+        self.xi_eff = np.asarray(pp, dtype=np.float64)
         self.z = self.crystal.z
     
     def phase_matching_function(self, DeltaK):
@@ -229,9 +239,9 @@ class SPDC_Simulation:
 
         Notes
         -----
-        For interference calculations (e.g., HOM), it is usually preferable to store the
-        *complex* JSA (including phase). If you need phase information downstream, set
-        ``JSA=Amp`` instead of ``JSA=np.abs(Amp)``.
+        ``JSA`` is the complex joint spectral amplitude (phase included). ``JSI`` is
+        the corresponding intensity, ``np.abs(JSA) ** 2``. Downstream interference
+        calculations (Schmidt decomposition, HOM) require the complex ``JSA``.
         """
         cfg = SPDCRunConfig(
             center=SPDCCenterConfig(
@@ -261,7 +271,7 @@ class SPDC_Simulation:
             Pump=PPE,
             Phase=np.abs(PMF),
             JSI=np.abs(Amp) ** 2,
-            JSA=np.abs(Amp), 
+            JSA=Amp,
             SchmidtCoefficients=None,
             Purity=None,
             K=None,

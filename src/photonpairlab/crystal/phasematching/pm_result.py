@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Optional, Tuple
 
 from photonpairlab.constants import C_VAC
 
@@ -7,11 +6,11 @@ import numpy as np
 
 @dataclass(frozen=True)
 class PhaseMismatchResult:
-    n: Tuple[float, float, float]          # (n_p, n_s, n_i)
-    N: Tuple[float, float, float]          # (N_p, N_s, N_i)
-    delta_k0: float                        # Δk0 in μm^-1 (as you currently return)
-    angle_pm: Optional[float] = None       # useful for APM, optional for QPM
-    coherence_length: Optional[float] = None  # useful for QPM
+    n: tuple[float, float, float]          # (n_p, n_s, n_i)
+    N: tuple[float, float, float]          # (N_p, N_s, N_i)
+    delta_k0: float                        # Δk0 in m^-1 (SI)
+    angle_pm: float | None = None          # useful for APM, optional for QPM
+    coherence_length: float | None = None  # useful for QPM
 
     def get_Np(self) -> float:
         return self.N[0]
@@ -20,7 +19,7 @@ class PhaseMismatchResult:
     def get_Ni(self) -> float:
         return self.N[2]
     
-    def get_angle_pm(self) -> Optional[float]:
+    def get_angle_pm(self) -> float | None:
         return self.angle_pm
     
     def compute_delta_k1(

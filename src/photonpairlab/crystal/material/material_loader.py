@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Mapping, Optional
+from typing import Any, Mapping
 
 from photonpairlab.config import RESOURCES_DIR
 from .material_data import MaterialData, Section
@@ -12,7 +12,7 @@ from .material_data import MaterialData, Section
 _MATERIALS_PATH = Path(RESOURCES_DIR) / "materials.json"
 
 
-def _parse_section(raw: Mapping[str, Any] | None) -> Optional[Section]:
+def _parse_section(raw: Mapping[str, Any] | None) -> Section | None:
     if raw is None:
         return None
     return Section(

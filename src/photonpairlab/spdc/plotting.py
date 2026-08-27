@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 from matplotlib.ticker import MaxNLocator
 
-from photonpairlab.spdc.hom_utils import *
+from photonpairlab.spdc.hom_utils import gaussian
 from photonpairlab.spdc.spdc_results import SPDCResults
 from photonpairlab.spdc.spectral_analyser import SpectralAnalyzer
 
@@ -66,11 +66,12 @@ class SPDC_Plotter:
         else:
             raise ValueError("Both fig and ax must be either None or provided together.")
         
+        # JSA is complex (phase included); plot its magnitude like the other (already-real) keys.
         PLOT_KEY_HANDLER = {
             "Pump": self.results.Pump,
             "Phase": self.results.Phase,
             "JSI": self.results.JSI,
-            "JSA": self.results.JSA,
+            "JSA": np.abs(self.results.JSA),
         }
         extent = (
             float(signal_wavelengths.min()),

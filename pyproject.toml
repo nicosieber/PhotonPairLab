@@ -18,6 +18,9 @@ dependencies = [
 [project.urls]
 LinkedIn = "https://www.linkedin.com/in/nico-sieber-0a7204156"
 
+[tool.setuptools.package-data]
+photonpairlab = ["resources/*.json"]
+
 [tool.mypy]
 namespace_packages = true
 mypy_path = "src"

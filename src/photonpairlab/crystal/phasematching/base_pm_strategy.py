@@ -1,15 +1,23 @@
+from typing import Literal
+
 import numpy as np
 
 from ..material.base_material import BaseMaterial
-from photonpairlab.laser import *
+from photonpairlab.laser import BaseLaser
 
 POLARIZATION_MAP: dict[str, tuple[str, str, str]] = {
     "type-0": ("e", "e", "e"),
     "type-I": ("e", "o", "o"),
     "type-II": ("y", "z", "y"),
     "type-IIeoe": ("e", "o", "e"),
-    "type-IIoeo": ("o", "e", "o"),  
+    "type-IIoeo": ("o", "e", "o"),
 }
+
+# Must stay in sync with POLARIZATION_MAP above.
+SPDCType = Literal["type-0", "type-I", "type-II", "type-IIeoe", "type-IIoeo"]
+# Union of the poling modes supported across all PhaseMatchingStrategy subclasses
+# (QPM: periodic/constant/subcoh; APM: constant only).
+PolingMode = Literal["periodic", "constant", "subcoh"]
 
 class PhaseMatchingStrategy:
     """
@@ -17,7 +25,7 @@ class PhaseMatchingStrategy:
     Provides the interface and common placeholders for all strategies.
     """
 
-    def __init__(self, material: BaseMaterial, spdc_type: str="type-II", coherence_length: float | None = None):
+    def __init__(self, material: BaseMaterial, spdc_type: SPDCType="type-II", coherence_length: float | None = None):
         self.material = material
         self.spdc_type = spdc_type
         self.coherence_length = coherence_length
@@ -75,7 +83,7 @@ class PhaseMatchingStrategy:
             wavelength_idler (float): Idler wavelength in meters.
 
         Returns:
-            float: Phase mismatch Δk in μm⁻¹.
+            float: Phase mismatch Δk in m⁻¹ (SI).
         """
         # Convert wavelengths to micrometers
         wavelength_pump = laser.wavelength_pump * 1e6
@@ -98,7 +106,7 @@ class PhaseMatchingStrategy:
         k_s = 2 * np.pi * n_s / wavelength_signal
         k_i = 2 * np.pi * n_i / wavelength_idler
 
-        return (k_p - k_s - k_i) * 1e6  # Δk in μm⁻¹
+        return (k_p - k_s - k_i) * 1e6  # k_x were in µm⁻¹ (µm-scaled wavelengths); *1e6 converts to m⁻¹
 
     def generate_poling(self, *args, **kwargs):
         """

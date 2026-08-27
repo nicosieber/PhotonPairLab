@@ -2,7 +2,7 @@ import numpy as np
 
 c_vac: float = 299792458
 
-def bandwidth_wavelength_to_pulse_width(self, bandwidth, wavelength_pump):
+def bandwidth_wavelength_to_pulse_width(bandwidth, wavelength_pump):
     """
     Convert bandwidth to pulse width.
 

@@ -31,11 +31,12 @@ class HOMAnalyzer:
 
         results = self.results_list[results_index]
         JSA = results.JSA
-
+        # JSA has shape (N_idler, N_signal): axis 0 is idler, axis 1 is signal.
+        # Tracing out idler (summing over axis 0) leaves the signal's reduced density matrix.
         if mode == "signal":
-            rho = JSA @ JSA.T.conj()
-        elif mode == "idler":
             rho = JSA.T @ JSA.conj()
+        elif mode == "idler":
+            rho = JSA @ JSA.T.conj()
         else:
             raise ValueError(f"Invalid mode: {mode}. Choose 'signal' or 'idler'.")
 
@@ -100,12 +101,3 @@ class HOMAnalyzer:
             purity2=purity2,
         )
         return results
-
-        return {
-            "P_c": Pc,
-            "taus_s": taus_s,
-            "taus_fs": taus_s * 1e15,
-            "overlap_at_zero_delay": overlap0,
-            "purity1": purity1,
-            "purity2": purity2,
-        }

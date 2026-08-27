@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Mapping, Optional
+from typing import Any
 
 @dataclass(frozen=True)
 class Section:
@@ -11,7 +11,7 @@ class MaterialData:
     name: str
     biaxial: bool
     sellmeier: Section
-    temperature_corrections: Optional[Section]
-    thermal_expansion: Optional[Section]
+    temperature_corrections: Section | None
+    thermal_expansion: Section | None
 
 

@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.optimize import minimize_scalar
 
-from .base_pm_strategy import PhaseMatchingStrategy
+from .base_pm_strategy import PhaseMatchingStrategy, SPDCType, PolingMode
 from .pm_result import PhaseMismatchResult
 from ..material.base_material import BaseMaterial
 from photonpairlab.laser import BaseLaser
@@ -11,7 +11,7 @@ class APMPhaseMatching(PhaseMatchingStrategy):
     Angle Phase-Matching (APM) strategy for nonlinear crystals.
     """
 
-    def __init__(self, material: BaseMaterial, spdc_type: str = "type-II", phi_deg: float = 0.0):
+    def __init__(self, material: BaseMaterial, spdc_type: SPDCType = "type-II", phi_deg: float = 0.0):
         super().__init__(material, spdc_type)
         self.phi_deg = phi_deg  # Used for biaxial crystals    
 
@@ -35,13 +35,14 @@ class APMPhaseMatching(PhaseMatchingStrategy):
         pol_pump, pol_signal, pol_idler = self.get_polarizations()
 
         # Compute refractive indices using effective_refractive_index for angle-based phase matching
-        n_pump = self.get_refractive_index(wavelength_pump, pol_pump, angle_pm, T)
-        n_signal = self.get_refractive_index(wavelength_signal, pol_signal, angle_pm, T)
-        n_idler = self.get_refractive_index(wavelength_idler, pol_idler, angle_pm, T)
+        # (Sellmeier coefficients are calibrated for wavelength in micrometers)
+        n_pump = self.get_refractive_index(wavelength_pump * 1e6, pol_pump, angle_pm, T)
+        n_signal = self.get_refractive_index(wavelength_signal * 1e6, pol_signal, angle_pm, T)
+        n_idler = self.get_refractive_index(wavelength_idler * 1e6, pol_idler, angle_pm, T)
         # Compute group indices
-        N_pump = self.get_group_index(wavelength_pump, pol_pump, angle_pm, T)
-        N_signal = self.get_group_index(wavelength_signal, pol_signal, angle_pm, T)
-        N_idler = self.get_group_index(wavelength_idler, pol_idler, angle_pm, T)
+        N_pump = self.get_group_index(wavelength_pump * 1e6, pol_pump, angle_pm, T)
+        N_signal = self.get_group_index(wavelength_signal * 1e6, pol_signal, angle_pm, T)
+        N_idler = self.get_group_index(wavelength_idler * 1e6, pol_idler, angle_pm, T)
 
         DeltaK_0 = self.delta_k(angle_pm, laser, wavelength_signal, wavelength_idler,T)
         return PhaseMismatchResult(
@@ -53,9 +54,9 @@ class APMPhaseMatching(PhaseMatchingStrategy):
         )
 
 
-    def generate_poling(self, crystal_length: float, 
-                        T: float, 
-                        mode: str, 
+    def generate_poling(self, crystal_length: float,
+                        T: float,
+                        mode: PolingMode,
                         laser: BaseLaser,
                         wavelength_signal: float | None = None,
                         wavelength_idler: float | None = None,
