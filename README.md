@@ -1,7 +1,11 @@
 # PhotonPairLab
 
+[![Tests](https://github.com/nicosieber/PhotonPairLab/actions/workflows/tests.yml/badge.svg)](https://github.com/nicosieber/PhotonPairLab/actions/workflows/tests.yml)
+
 **PhotonPairLab** is a Python toolkit for simulating photon pair generation via spontaneous parametric down-conversion (SPDC) in nonlinear crystals.
 It supports both angle phase-matching (APM) and quasi-phase-matching (QPM) using a unified, extensible object-oriented architecture.
+
+![PhotonPairLab: joint spectral amplitude and Hong-Ou-Mandel interference](assets/hero.png)
 
 ---
 
