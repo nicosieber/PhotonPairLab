@@ -16,6 +16,8 @@ This module is intended to be documented with Sphinx using ``autodoc`` + ``napol
 Docstrings follow NumPy style.
 """
 
+from typing import Sequence
+
 import numpy as np
 from photonpairlab.spdc.simulation.results import SPDCResults
 from photonpairlab.crystal import Crystal
@@ -49,11 +51,11 @@ class SPDC_Simulation:
     wavelength_idler : float, optional
         Idler center wavelength (m) used to compute the center phase mismatch.
         If ``None``, defaults to ``2 * laser.wavelength_pump`` (degenerate SPDC).
-    wavelength_signal_range : list[float | None], optional
+    wavelength_signal_range : Sequence[float], optional
         Legacy interface for specifying the signal wavelength range as ``[start, end]`` (m).
         If both values are ``None``, the range is taken from ``grid``.
         Prefer using ``grid``.
-    wavelength_idler_range : list[float | None], optional
+    wavelength_idler_range : Sequence[float], optional
         Legacy interface for specifying the idler wavelength range as ``[start, end]`` (m).
         If both values are ``None``, the range is taken from ``grid``.
         Prefer using ``grid``.
@@ -89,8 +91,8 @@ class SPDC_Simulation:
     def __init__(
             self, crystal: Crystal, laser: BaseLaser,
             wavelength_signal: float | None=None, wavelength_idler : float | None=None,
-            wavelength_signal_range: list[float | None] | None = None,
-            wavelength_idler_range: list[float | None] | None = None,
+            wavelength_signal_range: Sequence[float] | None = None,
+            wavelength_idler_range: Sequence[float] | None = None,
             grid: SPDCGridConfig | None = None,
                  ):
 
@@ -106,12 +108,9 @@ class SPDC_Simulation:
         else:
             self.wavelength_idler = wavelength_idler
 
-        wavelength_signal_range = wavelength_signal_range or [None, None]
-        wavelength_idler_range = wavelength_idler_range or [None, None]
-
         if grid is not None:
             self.grid = grid
-        elif wavelength_signal_range[0] is not None and wavelength_idler_range[0] is not None:
+        elif wavelength_signal_range is not None and wavelength_idler_range is not None:
             # Legacy interface: build the grid from the explicit signal/idler ranges.
             self.grid = SPDCGridConfig(
                 signal_range=(wavelength_signal_range[0], wavelength_signal_range[1]),
