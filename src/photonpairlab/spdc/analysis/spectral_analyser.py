@@ -31,8 +31,8 @@ class SpectralAnalyzer:
         signal_wavelengths = self.results.SignalWavelengths * 1e9
         idler_wavelengths = self.results.IdlerWavelengths * 1e9
 
-        signal_intensities = np.trapezoid(JSI, self.results.IdlerWavelengths, axis=1)
-        idler_intensities = np.trapezoid(JSI, self.results.SignalWavelengths, axis=0)
+        signal_intensities = np.trapezoid(JSI, self.results.IdlerWavelengths, axis=0)
+        idler_intensities = np.trapezoid(JSI, self.results.SignalWavelengths, axis=1)
 
         signal_max = np.amax(signal_intensities)
         idler_max = np.amax(idler_intensities)
