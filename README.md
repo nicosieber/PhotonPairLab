@@ -192,6 +192,8 @@ PhotonPairLab is inspired by the needs of quantum optics research and is open fo
 
 ---
 
+## Demo
+
 **For a full walkthrough with theory and worked examples, see [`notebooks/demo.ipynb`](notebooks/demo.ipynb).**
 
 ---
