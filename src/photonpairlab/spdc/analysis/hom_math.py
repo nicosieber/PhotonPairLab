@@ -1,8 +1,8 @@
 import numpy as np
 
 __all__ = [
-    "hom_coincidence_from_rhos",
     "apply_delay_to_rho_freq",
+    "hom_coincidence_from_rhos",
     "hom_dip_vs_delay",
 ]
 

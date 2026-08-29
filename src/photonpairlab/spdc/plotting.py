@@ -207,6 +207,69 @@ class SPDC_Plotter:
         return fig, axs
 
     @staticmethod
+    def plot_poling_profile(crystal, fig=None, ax=None, font_size=12):
+        """
+        Plot target vs. actual field-amplitude buildup along a crystal's poling pattern (top
+        panel), with the domain structure itself shown as a bar-code strip below.
+
+        Works for any crystal on which ``generate_poling(...)`` has been called, regardless of
+        poling mode (periodic, constant/unpoled, or apodized ``subcoh``) or strategy (QPM/APM):
+        ``Crystal.generate_poling()`` always populates ``target_amplitude``/``actual_amplitude``
+        alongside ``poling_pattern``/``z``. For non-apodized modes, "target" is the ideal,
+        fully-efficient uniform envelope (see ``PhaseMatchingStrategy.uniform_target``), so the
+        curves show how closely a plain periodic grating (or, for an unpoled crystal, how poorly)
+        tracks that ideal buildup. For a plain periodic/constant grating specifically, expect
+        ``actual`` to run ~4/pi above ``target`` -- see
+        ``PhaseMatchingStrategy.uniform_target`` for why (expected, not a bug).
+
+        Parameters
+        ----------
+        crystal : Crystal
+            A crystal on which ``generate_poling(...)`` has already been called.
+        fig, ax : matplotlib Figure/(Axes, Axes), optional
+            Existing figure and a ``(field_ax, pattern_ax)`` pair of axes to draw into. Both or
+            neither must be given.
+
+        Returns
+        -------
+        (fig, (field_ax, pattern_ax))
+        """
+        if crystal.poling_pattern is None:
+            raise ValueError("crystal.generate_poling(...) must be called before plotting.")
+
+        if fig is None and ax is None:
+            fig, (field_ax, pattern_ax) = plt.subplots(
+                2, 1, sharex=True, facecolor=_SURFACE,
+                gridspec_kw={"height_ratios": [3, 1], "hspace": 0.08},
+            )
+        elif fig is not None and ax is not None:
+            field_ax, pattern_ax = ax
+        else:
+            raise ValueError("Both fig and ax must be either None or provided together.")
+
+        z = crystal.z
+        target = np.abs(crystal.target_amplitude)
+        actual = np.abs(crystal.actual_amplitude)
+        norm = np.amax(target) or 1.0
+
+        field_ax.plot(z, actual / norm, color=_SERIES_COLORS[0], linewidth=2, label="Actual Field", zorder=3)
+        field_ax.plot(z, target / norm, color=_SERIES_COLORS[1], linewidth=2, label="Target", zorder=3)
+        field_ax.set_ylabel("field amplitude", fontsize=font_size)
+        _style_axes(field_ax)
+        _style_legend(field_ax)
+
+        pattern_ax.imshow(
+            crystal.poling_pattern[None, :], aspect="auto", cmap="gray",
+            extent=(float(z.min()), float(z.max()), 0, 1),
+        )
+        pattern_ax.set_yticks([])
+        pattern_ax.set_xlabel("position (m)", fontsize=font_size)
+        _style_axes(pattern_ax, grid=False)
+        pattern_ax.spines["left"].set_visible(False)
+
+        return fig, (field_ax, pattern_ax)
+
+    @staticmethod
     def plot_hom_dip(results, fig=None, ax=None, font_size=12):
         """
         Plot one or more Hong-Ou-Mandel coincidence-probability dips vs. relative delay.

@@ -2,7 +2,7 @@ import numpy as np
 from scipy.optimize import minimize_scalar
 
 from .base_pm_strategy import PhaseMatchingStrategy, SPDCType, PolingMode
-from .pm_result import PhaseMismatchResult
+from .pm_result import PhaseMismatchResult, PolingResult
 from ..material.base_material import BaseMaterial
 from photonpairlab.laser import BaseLaser
 
@@ -60,19 +60,24 @@ class APMPhaseMatching(PhaseMatchingStrategy):
                         laser: BaseLaser,
                         wavelength_signal: float | None = None,
                         wavelength_idler: float | None = None,
-                        coherence_length: float | None = None, 
+                        coherence_length: float | None = None,
                         w: float | None = None,
                         resolution: int = 5):
 
         if mode == "constant":
-            return self._generate_constant_poling(crystal_length, T, resolution)
+            if wavelength_signal is None or wavelength_idler is None:
+                raise ValueError("Both wavelength_signal and wavelength_idler must be provided for APM poling generation.")
+            return self._generate_constant_poling(crystal_length, T, resolution, laser, wavelength_signal, wavelength_idler)
         else:
             raise ValueError(f"Unknown poling mode: {mode}. Only 'constant' is supported for APM.")
 
-    def _generate_constant_poling(self, crystal_length: float, T: float, resolution: int = 5):
+    def _generate_constant_poling(self, crystal_length: float, T: float, resolution: int,
+                                  laser: BaseLaser,
+                                  wavelength_signal: float,
+                                  wavelength_idler: float):
         """
-        Generates a constant poling structure for angle phase-matched crystals.
-        
+        Generates a constant (unpoled) structure for angle phase-matched crystals.
+
         """
         temperature_adjusted_length = self.material.thermal_expansion(length=crystal_length, axis="z", temperature=T)
         # For APM, poling is typically constant (no periodic poling)
@@ -81,7 +86,12 @@ class APMPhaseMatching(PhaseMatchingStrategy):
         polarizations = np.tile([1, 1], num_domains)
         poling_pattern = np.repeat(polarizations, resolution)
         z = np.linspace(-temperature_adjusted_length / 2, temperature_adjusted_length / 2, len(poling_pattern))
-        return poling_pattern, z, temperature_adjusted_length
+        DeltaK = self.delta_k(angle=0, laser=laser, wavelength_signal=wavelength_signal, wavelength_idler=wavelength_idler, T=T)
+        # See QPMPhaseMatching._generate_periodic_poling: use the fine, resolution-repeated
+        # poling_pattern so the field arrays line up point-for-point with z/poling_pattern.
+        target_amplitude, actual_amplitude = self.compute_domain_field_arrays(
+            poling_pattern, Lc / resolution, Lc, temperature_adjusted_length, DeltaK)
+        return PolingResult(poling_pattern, z, temperature_adjusted_length, target_amplitude, actual_amplitude)
 
     def find_phase_matching_angle(
             self, laser: BaseLaser,

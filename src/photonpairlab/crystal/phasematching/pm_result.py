@@ -23,10 +23,10 @@ class PhaseMismatchResult:
         return self.angle_pm
     
     def compute_delta_k1(
-            self, 
-            wavelength_signal_range: np.ndarray, 
-            wavelength_idler_range: np.ndarray, 
-            pm_omega_signal: float, 
+            self,
+            wavelength_signal_range: np.ndarray,
+            wavelength_idler_range: np.ndarray,
+            pm_omega_signal: float,
             pm_omega_idler: float
             ) -> np.ndarray:
         """Computes the phase mismatch Δk1 for given signal and idler wavelengths."""
@@ -39,4 +39,19 @@ class PhaseMismatchResult:
 
         delta_K1 = (K_pump - K_signal) * (fs - pm_omega_signal) + (K_pump - K_idler) * (fi - pm_omega_idler)
         return delta_K1
-    
+
+
+@dataclass(frozen=True)
+class PolingResult:
+    """
+    Result of a phase-matching strategy's ``generate_poling()``: the domain-sign pattern and its
+    z-axis, plus the target vs. actual field-amplitude buildup along the crystal (Graffitti et al.
+    2017, Eq. 5 & 9) evaluated for that finalized pattern -- used to compare a designed apodization
+    target against what the discrete domain structure actually realizes (e.g. for plotting).
+    """
+    poling_pattern: np.ndarray
+    z: np.ndarray
+    temperature_adjusted_length: float
+    target_amplitude: np.ndarray
+    actual_amplitude: np.ndarray
+

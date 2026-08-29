@@ -71,6 +71,8 @@ class Crystal:
         self.poling_pattern: np.ndarray | None = None
         self.z: np.ndarray | None = None
         self.temperature_adjusted_length: float | None = None
+        self.target_amplitude: np.ndarray | None = None
+        self.actual_amplitude: np.ndarray | None = None
 
     def compute_phase_mismatch(self, *args, **kwargs):
         """Calculates the phase mismatch using the selected phase-matching strategy."""
@@ -101,4 +103,9 @@ class Crystal:
         """
         if self.coherence_length is None:
             self.coherence_length = self.ideal_coherence_length(laser, wavelength_signal, wavelength_idler, T=self.T)
-        self.poling_pattern, self.z, self.temperature_adjusted_length = self.pm_strategy.generate_poling(self.crystal_length, self.T, mode, laser, wavelength_signal, wavelength_idler, self.coherence_length, self.w, **kwargs)
+        poling_result = self.pm_strategy.generate_poling(self.crystal_length, self.T, mode, laser, wavelength_signal, wavelength_idler, self.coherence_length, self.w, **kwargs)
+        self.poling_pattern = poling_result.poling_pattern
+        self.z = poling_result.z
+        self.temperature_adjusted_length = poling_result.temperature_adjusted_length
+        self.target_amplitude = poling_result.target_amplitude
+        self.actual_amplitude = poling_result.actual_amplitude

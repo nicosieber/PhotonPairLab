@@ -1,8 +1,10 @@
-from typing import Literal
+from typing import Callable, Literal
 
 import numpy as np
+from scipy.integrate import cumulative_trapezoid
 
 from ..material.base_material import BaseMaterial
+from .pm_result import PolingResult
 from photonpairlab.laser import BaseLaser
 
 POLARIZATION_MAP: dict[str, tuple[str, str, str]] = {
@@ -108,8 +110,65 @@ class PhaseMatchingStrategy:
 
         return (k_p - k_s - k_i) * 1e6  # k_x were in µm⁻¹ (µm-scaled wavelengths); *1e6 converts to m⁻¹
 
-    def generate_poling(self, *args, **kwargs):
+    def generate_poling(self, *args, **kwargs) -> PolingResult:
         """
-        Generate poling pattern (periodic, sub-coherence, constant, etc.).
+        Generate poling pattern (periodic, sub-coherence, constant, etc.). Returns a
+        ``PolingResult`` bundling the domain-sign pattern/z-axis with its target vs. actual
+        field-amplitude buildup (see ``compute_domain_field_arrays``).
         """
         raise NotImplementedError("Implement in subclass.")
+
+    @staticmethod
+    def uniform_target(z: np.ndarray, L: float, coherence_length: float) -> np.ndarray:
+        """
+        Ideal, fully-efficient target profile (g(z) = 1) -- the default for non-apodized
+        (periodic/constant) poling, where there is no intentional envelope to track.
+
+        Note this represents an idealized *continuous* sinusoidal nonlinearity cos(Kz), not the
+        realizable ±1 square wave a plain periodic grating actually is. For a non-apodized (plain
+        periodic) grating, expect the realized ``actual_amplitude`` to run ~4/pi above the
+        ``target_amplitude`` this produces: a square wave's fundamental Fourier component is 4/pi
+        times a pure sinusoid of the same peak amplitude (the same rectangular-window effect
+        responsible for a plain grating's phase-matching-function side-lobes). This is expected,
+        not a bug -- it's exactly the gap sub-coherence-length apodization (``subcoh``) closes by
+        choosing domain signs to track a target instead of ignoring it.
+        """
+        return np.ones_like(z)
+
+    def compute_domain_field_arrays(
+            self,
+            domain_signs: np.ndarray,
+            w: float,
+            coherence_length: float,
+            L: float,
+            DeltaK: float,
+            target_profile: Callable[[np.ndarray, float, float], np.ndarray] | None = None,
+            ) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Vectorized target vs. actual field-amplitude buildup (Graffitti et al. 2017, Eq. 5 & 9,
+        https://doi.org/10.1088/2058-9565/aa78d4) for a *finalized* sequence of domain signs of
+        width w, one value per domain (length = len(domain_signs)).
+
+        ``actual_amplitude`` is the field amplitude the discrete domain pattern actually realizes
+        (Eq. 9); ``target_amplitude`` is the designed/ideal field amplitude for a continuous target
+        nonlinearity g_target(z) = target_profile(z, L, coherence_length) * cos(pi z/coherence_length)
+        (Eq. 5), defaulting to a uniform g(z) = 1 envelope when no ``target_profile`` is given.
+        Both are generic to any domain-sign sequence, not just ones chosen to track a target --
+        e.g. for periodic/constant poling, ``actual_amplitude`` still shows how well (or poorly, for
+        an unpoled/non-inverted pattern) the realized structure builds up against the ideal ramp.
+        """
+        target_profile = target_profile or self.uniform_target
+        n = np.arange(1, len(domain_signs) + 1)
+        z = n * w
+        K = np.pi / coherence_length
+
+        exp_term = np.exp(1j * K * z)
+        actual_amplitude = (coherence_length / np.pi) * (np.exp(-1j * K * w) - 1) * np.cumsum(np.asarray(domain_signs) * exp_term)
+
+        g = target_profile(z, L, coherence_length)
+        freq_plus, freq_minus = DeltaK + K, DeltaK - K
+        freq = freq_plus if abs(freq_plus) < abs(freq_minus) else freq_minus
+        y = 0.5 * g * np.exp(1j * freq * z)
+        target_amplitude = -1j * cumulative_trapezoid(y, z, initial=0)
+
+        return target_amplitude, actual_amplitude
