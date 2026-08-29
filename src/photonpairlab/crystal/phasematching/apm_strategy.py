@@ -105,3 +105,69 @@ class APMPhaseMatching(PhaseMatchingStrategy):
 
         return phase_matching_angle
 
+    def find_phase_matching_angles_jax(
+            self,
+            wavelength_pump,
+            wavelength_signal,
+            wavelength_idler,
+            T: float = 25.0,
+            bounds: tuple[float, float] = (0.0, 90.0),
+            iters: int = 50,
+        ):
+        """
+        Vectorized counterpart to ``find_phase_matching_angle``: solves an entire sweep of
+        (wavelength_pump, wavelength_signal, wavelength_idler) triples in a single batched JAX
+        call instead of looping ``scipy.optimize.minimize_scalar`` once per point.
+
+        Each argument may be a scalar or a 1D array; scalars are broadcast to the array shape.
+        Wavelengths are in meters (SI), matching ``find_phase_matching_angle``'s laser-wavelength
+        convention. Requires the optional 'jax' dependency (``pip install photonpairlab[jax]``).
+
+        Returns a JAX array of phase-matching angles (degrees), one per sweep point.
+        """
+        from .jax_accel import find_phase_matching_angle_sweep
+        import jax.numpy as jnp
+
+        pol_p, pol_s, pol_i = self.get_polarizations()
+        wl_s = jnp.asarray(wavelength_signal, dtype=jnp.float64)
+        wl_p = jnp.broadcast_to(jnp.asarray(wavelength_pump, dtype=jnp.float64), wl_s.shape)
+        wl_i = jnp.broadcast_to(jnp.asarray(wavelength_idler, dtype=jnp.float64), wl_s.shape)
+
+        return find_phase_matching_angle_sweep(
+            self.material, pol_p, pol_s, pol_i, self.phi_deg, wl_p, wl_s, wl_i, T, bounds, iters
+        )
+
+    def compute_phase_mismatch_jax(
+            self,
+            wavelength_pump,
+            wavelength_signal,
+            wavelength_idler,
+            T: float = 25.0,
+        ) -> dict:
+        """
+        Vectorized counterpart to ``compute_phase_mismatch``: for an entire sweep of
+        (wavelength_pump, wavelength_signal, wavelength_idler) triples, finds the phase-matching
+        angle for each point (see ``find_phase_matching_angles_jax``) and then computes n's, N's,
+        and Δk0 for all points in one batched JAX call — N's use exact autodiff instead of the
+        numpy path's finite-difference derivative.
+
+        Each argument may be a scalar or a 1D array; scalars are broadcast to the array shape.
+        Wavelengths are in meters (SI). Requires the optional 'jax' dependency
+        (``pip install photonpairlab[jax]``).
+
+        Returns a dict of JAX arrays (one entry per sweep point): ``angle_pm``, ``delta_k0``,
+        ``n`` (tuple of n_pump/n_signal/n_idler arrays), ``N`` (tuple of N_pump/N_signal/N_idler
+        arrays).
+        """
+        from .jax_accel import compute_phase_mismatch_sweep
+        import jax.numpy as jnp
+
+        pol_p, pol_s, pol_i = self.get_polarizations()
+        wl_s = jnp.asarray(wavelength_signal, dtype=jnp.float64)
+        wl_p = jnp.broadcast_to(jnp.asarray(wavelength_pump, dtype=jnp.float64), wl_s.shape)
+        wl_i = jnp.broadcast_to(jnp.asarray(wavelength_idler, dtype=jnp.float64), wl_s.shape)
+
+        return compute_phase_mismatch_sweep(
+            self.material, pol_p, pol_s, pol_i, self.phi_deg, wl_p, wl_s, wl_i, T
+        )
+

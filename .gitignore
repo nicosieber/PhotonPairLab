@@ -1,5 +1,6 @@
 __pycache__/
 photonpairlab.egg-info/
+.theory/
 *.pyc
 *.pyo
 *.pyd
