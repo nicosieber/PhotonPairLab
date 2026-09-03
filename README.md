@@ -123,58 +123,61 @@ Tests are organized by subpackage under `tests/` (`tests_crystal/`, `tests_laser
 
 ---
 
-## Architecture Overview
+## Simulation Workflow 
 
-```
-photonpairlab/
-│
-├── crystal/
-│   ├── material/
-│   │   ├── base_material.py
-│   │   ├── material_factory.py      # MaterialFactory.create("ktp1"/"bbo"/...)
-│   │   ├── material_loader.py       # loads src/photonpairlab/resources/materials.json
-│   │   └── model/
-│   │       ├── base_material_model.py
-│   │       ├── general_sellmeier_thermal.py
-│   │       ├── kato_takaoka_sellmeier_thermal.py
-│   │       ├── sellmeier_linear_thermal.py
-│   │       ├── bbo.py
-│   │       └── bibo.py
-│   ├── phasematching/
-│   │   ├── base_pm_strategy.py
-│   │   ├── qpm_strategy.py
-│   │   ├── apm_strategy.py
-│   │   ├── pm_result.py          # PolingResult, incl. manufacturing-imperfection methods
-│   │   └── imperfections.py      # pure array helpers backing PolingResult's imperfection methods
-│   ├── crystal.py
-│   └── ...
-├── laser/
-│   ├── base_laser.py
-│   ├── cw_laser.py
-│   └── pulsed_laser.py
-├── spdc/
-│   ├── simulation/
-│   │   ├── simulation.py            # SPDC_Simulation
-│   │   ├── config.py                # SPDCGridConfig/SPDCCenterConfig/SPDCRunConfig (pydantic)
-│   │   └── results.py               # SPDCResults
-│   ├── analysis/
-│   │   ├── spectral_analyser.py     # SpectralAnalyzer (Schmidt decomposition, marginals)
-│   │   ├── hom_analyser.py          # HOMAnalyzer
-│   │   ├── hom_math.py              # HOM density-matrix math
-│   │   ├── fitting.py               # shared curve-fit helpers (gaussian, quadratic, ...)
-│   │   └── two_mode_hom_results.py  # TwoModeHOMResults
-│   ├── plotting.py                  # SPDC_Plotter
-│   └── ...
-├── quickstart.py                    # simulate_spdc(...)
-└── ...
+The diagram below shows the actual simulation workflow — from choosing a material through
+phase-matching, the optional manufacturing-imperfection step, and on to simulation/analysis — rather
+than the package layout.
+
+```mermaid
+flowchart TD
+    MAT["Choose material<br/>MaterialFactory.create(name)"]
+    LAS["Choose laser<br/>CWLaser or PulsedLaser"]
+    CRY["Build Crystal<br/>(length, temperature, spdc_type, pm_strategy)"]
+
+    MAT --> CRY
+    CRY --> STRAT{"pm_strategy"}
+
+    STRAT -->|quasi| QPM{"generate_poling(mode)"}
+    QPM -->|periodic| QP["Alternating +/- domains"]
+    QPM -->|constant| QC["Unpoled reference"]
+    QPM -->|subcoh| QS["Apodized domains<br/>(Graffitti et al. 2017)"]
+    QP --> POL["PolingResult<br/>(domain_signs, domain_widths)"]
+    QC --> POL
+    QS --> POL
+
+    STRAT -->|angle| APM["generate_poling(mode='constant')<br/>search phase-matching angle"]
+    APM --> POLA["PolingResult<br/>(no domain metadata)"]
+
+    POL --> IMP{"Model manufacturing<br/>imperfections?"}
+    IMP -->|no| READY["Ideal poling on Crystal"]
+    IMP -->|yes| CHAIN["add_wall_position_error /<br/>add_missed_domain_error /<br/>add_duty_cycle_bias"]
+    CHAIN --> APPLY["crystal.apply_poling(perturbed)"]
+    APPLY --> READYP["Perturbed poling on Crystal<br/>actual amplitude diverges from target"]
+
+    POLA --> READYA["Ideal poling on Crystal<br/>(imperfections unsupported)"]
+
+    READY --> SIM["SPDC_Simulation(crystal, laser).run()"]
+    READYP --> SIM
+    READYA --> SIM
+    LAS --> SIM
+
+    SIM --> RES["SPDCResults<br/>Pump, Phase, JSI, JSA"]
+
+    RES --> SPEC["SpectralAnalyzer<br/>Schmidt decomposition, purity"]
+    RES --> HOM["HOMAnalyzer (>=2 results)<br/>HOM dip"]
+    RES --> PLOT["SPDC_Plotter<br/>JSI / JSA heatmap"]
+    READY --> PROFILE["SPDC_Plotter.plot_poling_profile<br/>target vs actual amplitude"]
+    READYP --> PROFILE
 ```
 
-- **Materials:** All nonlinear crystal properties (refractive index, thermal expansion, etc.), looked up
-  by name via `MaterialFactory.create(name)`; the underlying data lives in `src/photonpairlab/resources/materials.json`.
-- **Phase-Matching Strategies:** QPM and APM logic, interchangeable via the strategy pattern
-- **Crystal:** Unified interface, delegates phase-matching to the chosen strategy, and can compute its
-  own ideal coherence length (`ideal_coherence_length`) from the material's dispersion
-- **SPDC:** Simulation and analysis tools (joint spectral amplitude/intensity, Schmidt decomposition, HOM)
+- **Materials** (`crystal/material/`): properties looked up by name via `MaterialFactory.create(name)`
+  from `src/photonpairlab/resources/materials.json`.
+- **Phase-matching strategies** (`crystal/phasematching/`): QPM and APM via the strategy pattern;
+  manufacturing-imperfection modeling (`imperfections.py`) chains onto QPM `PolingResult`s only, since
+  APM's constant poling carries no domain metadata to perturb.
+- **Laser** (`laser/`): `CWLaser`/`PulsedLaser` spectral envelope.
+- **SPDC** (`spdc/`): simulation (`simulation/`), analysis (`analysis/`), plotting (`plotting.py`).
 
 ---
 
