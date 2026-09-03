@@ -172,3 +172,45 @@ class PhaseMatchingStrategy:
         target_amplitude = -1j * cumulative_trapezoid(y, z, initial=0)
 
         return target_amplitude, actual_amplitude
+
+    def compute_domain_field_arrays_nonuniform(
+            self,
+            domain_signs: np.ndarray,
+            z: np.ndarray,
+            coherence_length: float,
+            L: float,
+            DeltaK: float,
+            target_profile: Callable[[np.ndarray, float, float], np.ndarray] | None = None,
+            ) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Generalization of ``compute_domain_field_arrays`` for a domain-sign sequence sampled on
+        an arbitrary (non-uniform-width) ``z`` grid -- e.g. after
+        ``PolingResult.add_wall_position_error()`` or ``.add_duty_cycle_bias()`` have perturbed
+        domain widths, which breaks the single-scalar-``w`` assumption behind
+        ``compute_domain_field_arrays``'s closed-form Eq. 9 recursion (Graffitti et al. 2017).
+
+        Both ``target_amplitude`` and ``actual_amplitude`` are evaluated by direct cumulative
+        trapezoidal integration against the (possibly irregular) ``z`` -- the same numerical
+        technique ``compute_domain_field_arrays`` already uses for ``target_amplitude``, applied
+        here to ``actual_amplitude`` too, since Eq. 9's closed form has no direct
+        non-uniform-width analogue without re-deriving it from scratch. This introduces an
+        O(1/resolution) discretization error at each domain boundary relative to the exact
+        closed form (negligible for resolution >~ 10-20); on a uniform grid it converges to
+        ``compute_domain_field_arrays``'s result as resolution grows. Used only for the
+        ``target_amplitude``/``actual_amplitude`` diagnostic (``plot_poling_profile``) --
+        ``SPDC_Simulation.phase_matching_function`` integrates the actual physics independently
+        and is already exact/general over irregular ``z``.
+        """
+        target_profile = target_profile or self.uniform_target
+        K = np.pi / coherence_length
+
+        y_actual = np.asarray(domain_signs) * np.exp(1j * K * z)
+        actual_amplitude = -1j * cumulative_trapezoid(y_actual, z, initial=0)
+
+        g = target_profile(z, L, coherence_length)
+        freq_plus, freq_minus = DeltaK + K, DeltaK - K
+        freq = freq_plus if abs(freq_plus) < abs(freq_minus) else freq_minus
+        y_target = 0.5 * g * np.exp(1j * freq * z)
+        target_amplitude = -1j * cumulative_trapezoid(y_target, z, initial=0)
+
+        return target_amplitude, actual_amplitude

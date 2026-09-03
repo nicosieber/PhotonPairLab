@@ -122,7 +122,11 @@ class QPMPhaseMatching(PhaseMatchingStrategy):
         # each fine step is 1/resolution of a coherence length wide.
         target_amplitude, actual_amplitude = self.compute_domain_field_arrays(
             poling_pattern, coherence_length / resolution, coherence_length, temperature_adjusted_length, DeltaK)
-        return PolingResult(poling_pattern, z, temperature_adjusted_length, target_amplitude, actual_amplitude)
+        return PolingResult(poling_pattern, z, temperature_adjusted_length, target_amplitude, actual_amplitude,
+                             domain_signs=polarizations,
+                             domain_widths=np.full(num_domains, coherence_length),
+                             resolution=resolution, coherence_length=coherence_length, DeltaK=DeltaK,
+                             target_profile=None, uniform_width=True)
 
     def _generate_constant_poling(self, crystal_length, T, coherence_length, resolution,
                                   laser: BaseLaser,
@@ -158,7 +162,11 @@ class QPMPhaseMatching(PhaseMatchingStrategy):
         # field arrays line up point-for-point with z/poling_pattern.
         target_amplitude, actual_amplitude = self.compute_domain_field_arrays(
             poling_pattern, coherence_length / resolution, coherence_length, temperature_adjusted_length, DeltaK)
-        return PolingResult(poling_pattern, z, temperature_adjusted_length, target_amplitude, actual_amplitude)
+        return PolingResult(poling_pattern, z, temperature_adjusted_length, target_amplitude, actual_amplitude,
+                             domain_signs=polarizations,
+                             domain_widths=np.full(num_domains, coherence_length),
+                             resolution=resolution, coherence_length=coherence_length, DeltaK=DeltaK,
+                             target_profile=None, uniform_width=True)
 
     def _generate_subcoh_poling(self, laser: BaseLaser,
                                 wavelength_signal: float,
@@ -239,7 +247,10 @@ class QPMPhaseMatching(PhaseMatchingStrategy):
         z = np.arange(1, num_domains + 1) * w - temperature_adjusted_length / 2
         target_amplitude, actual_amplitude = self.compute_domain_field_arrays(
             poling_pattern, w, coherence_length, temperature_adjusted_length, DeltaK, target_profile)
-        return PolingResult(poling_pattern, z, temperature_adjusted_length, target_amplitude, actual_amplitude)
+        return PolingResult(poling_pattern, z, temperature_adjusted_length, target_amplitude, actual_amplitude,
+                             domain_signs=poling_pattern, domain_widths=np.full(num_domains, w),
+                             resolution=1, coherence_length=coherence_length, DeltaK=DeltaK,
+                             target_profile=target_profile, uniform_width=True)
 
     def gtarget(self, z, L, coherence_length):
         """

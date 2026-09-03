@@ -6,6 +6,7 @@ from .material import BaseMaterial
 from .phasematching import QPMPhaseMatching
 from .phasematching import APMPhaseMatching
 from .phasematching import SPDCType, PolingMode
+from .phasematching import PolingResult
 
 from photonpairlab.laser import BaseLaser
 
@@ -93,13 +94,17 @@ class Crystal:
         pm_result = self.pm_strategy.compute_phase_mismatch(laser, wavelength_signal, wavelength_idler, T=T)
         return np.pi / abs(pm_result.delta_k0)
 
-    def generate_poling(self, laser: BaseLaser, mode: PolingMode, wavelength_signal: float, wavelength_idler:float, **kwargs):
+    def generate_poling(self, laser: BaseLaser, mode: PolingMode, wavelength_signal: float, wavelength_idler:float, **kwargs) -> PolingResult:
         """
         Generates the poling pattern based on the selected phase-matching strategy.
 
         If `coherence_length` wasn't provided when constructing this Crystal, it is computed
         automatically via `ideal_coherence_length` for the given laser/target wavelengths and
         stored on `self.coherence_length` (an explicitly-provided value is never overwritten).
+
+        Returns the `PolingResult` (also copied onto `self.poling_pattern`/`.z`/etc.), so it can
+        be chained into `.add_wall_position_error()`/`.add_missed_domain_error()`/
+        `.add_duty_cycle_bias()` and passed to `apply_poling()`.
         """
         if self.coherence_length is None:
             self.coherence_length = self.ideal_coherence_length(laser, wavelength_signal, wavelength_idler, T=self.T)
@@ -109,3 +114,41 @@ class Crystal:
         self.temperature_adjusted_length = poling_result.temperature_adjusted_length
         self.target_amplitude = poling_result.target_amplitude
         self.actual_amplitude = poling_result.actual_amplitude
+        return poling_result
+
+    def apply_poling(self, poling_result: PolingResult) -> None:
+        """
+        Write a (possibly perturbed) ``PolingResult`` back onto this crystal and recompute
+        ``target_amplitude``/``actual_amplitude`` for the new pattern.
+
+        ``poling_result`` must carry ``DeltaK``/``coherence_length``/``resolution`` context --
+        i.e. it must be (optionally passed through ``PolingResult.add_wall_position_error()``,
+        ``.add_missed_domain_error()``, ``.add_duty_cycle_bias()``) the ``PolingResult``
+        originally returned by ``self.generate_poling(...)``. That context travels on
+        ``poling_result`` itself, set once at generation time, rather than being re-derived from
+        laser/wavelength/T arguments passed again here -- this avoids a class of silent-mismatch
+        bugs where the caller might otherwise supply different laser/wavelength/T values than
+        were used to originally generate the poling.
+        """
+        if poling_result.DeltaK is None or poling_result.coherence_length is None or poling_result.resolution is None:
+            raise ValueError(
+                "apply_poling() requires a PolingResult carrying DeltaK/coherence_length/resolution "
+                "metadata, as produced by Crystal.generate_poling(...) (optionally passed through "
+                "its .add_wall_position_error()/.add_missed_domain_error()/.add_duty_cycle_bias() methods)."
+            )
+
+        if poling_result.uniform_width:
+            w = poling_result.domain_widths[0] / poling_result.resolution
+            target_amplitude, actual_amplitude = self.pm_strategy.compute_domain_field_arrays(
+                poling_result.poling_pattern, w, poling_result.coherence_length,
+                poling_result.temperature_adjusted_length, poling_result.DeltaK, poling_result.target_profile)
+        else:
+            target_amplitude, actual_amplitude = self.pm_strategy.compute_domain_field_arrays_nonuniform(
+                poling_result.poling_pattern, poling_result.z, poling_result.coherence_length,
+                poling_result.temperature_adjusted_length, poling_result.DeltaK, poling_result.target_profile)
+
+        self.poling_pattern = poling_result.poling_pattern
+        self.z = poling_result.z
+        self.temperature_adjusted_length = poling_result.temperature_adjusted_length
+        self.target_amplitude = target_amplitude
+        self.actual_amplitude = actual_amplitude

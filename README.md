@@ -22,6 +22,11 @@ It supports both angle phase-matching (APM) and quasi-phase-matching (QPM) using
   photon purity), and Hong-Ou-Mandel (HOM) interference between one or two sources
 - A one-call `simulate_spdc(...)` convenience entry point for the common case, alongside the full
   `Crystal`/`SPDC_Simulation` pipeline for anything more specific
+- Manufacturing-imperfection modeling for QPM poling — wall-position error (random-walk or
+  bounded), missed domains, and duty-cycle bias — chainable on any `PolingResult` via
+  `.add_wall_position_error()`/`.add_missed_domain_error()`/`.add_duty_cycle_bias()` and fed back
+  into the crystal with `Crystal.apply_poling(...)` to see the effect on JSA/JSI purity and HOM
+  interference
 - Easily extensible for new materials and phase-matching types
 
 ---
@@ -88,6 +93,24 @@ results = simulation.run()
 apodization, Schmidt purity, HOM interference, temperature tuning, and angle phase-matching/GVM,
 with references to the literature — see [`notebooks/demo.ipynb`](notebooks/demo.ipynb).
 
+Modeling a real, imperfectly-fabricated crystal instead of an idealized one:
+
+```python
+result = crystal.generate_poling(laser=laser, mode="periodic",
+                                  wavelength_signal=1550e-9, wavelength_idler=1550e-9, resolution=5)
+
+# chain any subset of the three fabrication-error mechanisms (Graffitti et al. 2017, Sec. III.3.2)
+result = (result
+          .add_wall_position_error(method="cumulative", sigma=0.02)
+          .add_missed_domain_error(probability=0.01)
+          .add_duty_cycle_bias(factor=0.02))
+
+crystal.apply_poling(result)  # recomputes target_amplitude/actual_amplitude for the perturbed pattern
+```
+
+See [`notebooks/manufacturing_imperfections.ipynb`](notebooks/manufacturing_imperfections.ipynb)
+for the full tutorial on all three mechanisms and their effect on purity and HOM interference.
+
 ---
 
 ## Running the tests
@@ -97,21 +120,6 @@ python -m pytest
 ```
 
 Tests are organized by subpackage under `tests/` (`tests_crystal/`, `tests_laser/`, `tests_spdc/`).
-
----
-
-## Documentation
-
-API documentation is built with Sphinx (not currently a declared project dependency, so install it
-first):
-
-```sh
-pip install sphinx sphinx-book-theme
-cd docs
-make html
-```
-
-Output goes to `docs/build/html`.
 
 ---
 
@@ -136,7 +144,8 @@ photonpairlab/
 │   │   ├── base_pm_strategy.py
 │   │   ├── qpm_strategy.py
 │   │   ├── apm_strategy.py
-│   │   └── pm_result.py
+│   │   ├── pm_result.py          # PolingResult, incl. manufacturing-imperfection methods
+│   │   └── imperfections.py      # pure array helpers backing PolingResult's imperfection methods
 │   ├── crystal.py
 │   └── ...
 ├── laser/
@@ -195,6 +204,9 @@ PhotonPairLab is inspired by the needs of quantum optics research and is open fo
 ## Demo
 
 **For a full walkthrough with theory and worked examples, see [`notebooks/demo.ipynb`](notebooks/demo.ipynb).**
+
+**For manufacturing-imperfection modeling specifically, see
+[`notebooks/manufacturing_imperfections.ipynb`](notebooks/manufacturing_imperfections.ipynb).**
 
 ---
 
