@@ -311,6 +311,27 @@ def test_general_fallback_matches_closed_form_on_uniform_grid(material, laser):
     np.testing.assert_allclose(np.abs(actual_general[-1]), np.abs(actual_exact[-1]), rtol=1e-2)
 
 
+def test_general_fallback_target_amplitude_matches_closed_form_on_uniform_grid(material, laser):
+    # Same setup as test_general_fallback_matches_closed_form_on_uniform_grid, but with a
+    # non-constant target_profile (gtarget's Gaussian, rather than the default uniform_target's
+    # g(z) = 1) -- the default is shift-invariant under compute_domain_field_arrays_nonuniform's
+    # centered-z convention, so it can't catch a z-convention mismatch between the two formulas.
+    # gtarget's Gaussian peaks at a specific physical position (z = L/2, uncentered), so it does.
+    from photonpairlab.crystal.phasematching import imperfections
+    _, poling = _periodic_crystal(material, laser)
+    strategy = QPMPhaseMatching(material, spdc_type="type-II")
+    w = poling.domain_widths[0] / poling.resolution
+    pattern, z = imperfections.resample_domains_to_fine_grid(poling.domain_signs, poling.domain_widths, poling.resolution)
+    L = poling.domain_widths.sum()
+
+    target_exact, _ = strategy.compute_domain_field_arrays(
+        pattern, w, poling.coherence_length, L, poling.DeltaK, target_profile=strategy.gtarget)
+    target_general, _ = strategy.compute_domain_field_arrays_nonuniform(
+        pattern, z, poling.coherence_length, L, poling.DeltaK, target_profile=strategy.gtarget)
+
+    np.testing.assert_allclose(np.abs(target_general), np.abs(target_exact), rtol=1e-2, atol=1e-3 * np.abs(target_exact).max())
+
+
 # ---------------------------------------------------------------------------
 # Crystal.apply_poling
 # ---------------------------------------------------------------------------

@@ -200,17 +200,27 @@ class PhaseMatchingStrategy:
         ``target_amplitude``/``actual_amplitude`` diagnostic (``plot_poling_profile``) --
         ``SPDC_Simulation.phase_matching_function`` integrates the actual physics independently
         and is already exact/general over irregular ``z``.
+
+        ``z`` is expected in the centered convention ``PolingResult``/
+        ``imperfections.resample_domains_to_fine_grid`` use (spanning roughly ``[-L/2, L/2]``, for
+        symmetric plotting), but the phase terms and ``target_profile`` callables (``gtarget``,
+        ``sigmoid_target``, ...) are all written assuming an uncentered position measured from the
+        crystal's front face (``[0, L]``) -- the same convention ``compute_domain_field_arrays``
+        uses internally for its own ``z = n * w``. So ``z`` is shifted back to that convention
+        before being used in any phase/profile evaluation; only the (shift-invariant) integration
+        spacing relies on the original ``z``.
         """
         target_profile = target_profile or self.uniform_target
         K = np.pi / coherence_length
+        z_phys = z + L / 2  # undo PolingResult's centering; see docstring
 
-        y_actual = np.asarray(domain_signs) * np.exp(1j * K * z)
+        y_actual = np.asarray(domain_signs) * np.exp(1j * K * z_phys)
         actual_amplitude = -1j * cumulative_trapezoid(y_actual, z, initial=0)
 
-        g = target_profile(z, L, coherence_length)
+        g = target_profile(z_phys, L, coherence_length)
         freq_plus, freq_minus = DeltaK + K, DeltaK - K
         freq = freq_plus if abs(freq_plus) < abs(freq_minus) else freq_minus
-        y_target = 0.5 * g * np.exp(1j * freq * z)
+        y_target = 0.5 * g * np.exp(1j * freq * z_phys)
         target_amplitude = -1j * cumulative_trapezoid(y_target, z, initial=0)
 
         return target_amplitude, actual_amplitude
