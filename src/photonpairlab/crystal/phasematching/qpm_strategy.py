@@ -105,7 +105,8 @@ class QPMPhaseMatching(PhaseMatchingStrategy):
             - The total length of the z-axis (z) will match the length of the poling_pattern.
         """
         temperature_adjusted_length = self.material.thermal_expansion(length=crystal_length, axis="z", temperature=T)
-        num_domains = int(np.floor(crystal_length / coherence_length))
+        #num_domains = int(np.floor(crystal_length / coherence_length)) # Old: Leads to error: signal idler spectra mismatch even with optimized coherence_length
+        num_domains = int(round(temperature_adjusted_length / coherence_length))  # noqa: RUF046
         # Create the polarizations array with one alternating-sign entry per domain
         # (np.resize repeats [1, -1] and truncates to exactly num_domains entries;
         # np.tile would double the domain count and halve the realized domain width).
@@ -113,9 +114,15 @@ class QPMPhaseMatching(PhaseMatchingStrategy):
         # Create the poling pattern using np.repeat
         poling_pattern = np.repeat(polarizations, resolution)
         # Calculate z values directly based on the length of poling_pattern
-        z = np.linspace(-temperature_adjusted_length / 2,
-                        temperature_adjusted_length / 2,
-                        len(poling_pattern))
+        
+        # Old: produced the spectra mismatch error mentioned in line 108.
+        #z = np.linspace(-temperature_adjusted_length / 2,
+        #                temperature_adjusted_length / 2,
+        #                len(poling_pattern))
+        # New:
+        dz = coherence_length / resolution
+        z = (np.arange(len(poling_pattern)) + 0.5) * dz - num_domains * coherence_length / 2
+
         DeltaK = self.delta_k(angle=0, laser=laser, wavelength_signal=wavelength_signal, wavelength_idler=wavelength_idler, T=T)
         # Field arrays are computed on poling_pattern (resolution-repeated), not the coarse
         # pre-repeat polarizations, so they line up point-for-point with z/poling_pattern --

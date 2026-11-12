@@ -1,6 +1,6 @@
 __pycache__/
 photonpairlab.egg-info/
-.theory/
+
 *.pyc
 *.pyo
 *.pyd
@@ -17,3 +17,7 @@ CLAUDE.md
 .venv
 uv.lock
 devinstall.zsh
+
+.theory/
+.todos/
+.books/
