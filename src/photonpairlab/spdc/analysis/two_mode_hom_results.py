@@ -12,3 +12,4 @@ class TwoModeHOMResults:
     overlap_at_zero_delay: float
     purity1: float
     purity2: float
+    polarization_overlap: float = 1.0

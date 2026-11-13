@@ -1,6 +1,6 @@
 import numpy as np
 
-from photonpairlab.spdc.analysis.hom_math import hom_dip_vs_delay
+from photonpairlab.spdc.analysis.hom_math import hom_dip_vs_delay, polarization_overlap
 from photonpairlab.spdc.simulation.results import SPDCResults
 from photonpairlab.spdc.analysis.two_mode_hom_results import TwoModeHOMResults
 
@@ -43,7 +43,20 @@ class HOMAnalyzer:
         rho /= np.trace(rho)  # Normalize trace to 1
         return rho, JSA
     
-    def compute_two_mode_HOM(self, mode1="signal", mode2="signal", taus_s=None, R=0.5, T=0.5):
+    def compute_two_mode_HOM(self, mode1="signal", mode2="signal", taus_s=None, R=0.5, T=0.5, pol1=None, pol2=None):
+        """
+        Computes the HOM coincidence probability vs delay for photon 1 (results[0], mode1) and
+        photon 2 (results[1], mode2):
+
+            Pc(tau) = R^2 + T^2 - 2RT * |<p1|p2>|^2 * Re Tr[rho1 rho2(tau)]
+
+        Args:
+            mode1, mode2 (str): "signal" or "idler" for each photon.
+            taus_s (np.ndarray, optional): Delays in seconds.
+            R, T (float): Beam-splitter reflectivity and transmissivity.
+            pol1, pol2 (array-like, optional): Jones vectors of the two photons. None (default) means
+                identical polarizations, i.e. |<p1|p2>|^2 = 1. See hom_math.linear_polarization.
+        """
         if len(self.results_list) < 2:
             raise ValueError("At least two results are required to compute two-mode HOM interference.")
 
@@ -69,23 +82,21 @@ class HOMAnalyzer:
             raise ValueError("Wavelength grids do not match; resample/interpolate onto a common grid first.")
 
         c = results1.c  # speed of light from your results dict
-        freqs = np.sort(c / wl1)  # Hz if wl in meters
-
-        # If you padded rho via zero padding, you should also pad freqs consistently.
-        # The *simplest* safe option: do NOT pad rho unless you also create a matching padded frequency grid.
-        # If pad_factor != 1 here, you should handle freqs padding explicitly.
+        # Keep rho's row/column order: sorting would misalign the frequency bins with rho.
+        freqs = c / wl1  # Hz if wl in meters
+        pol_overlap = polarization_overlap(pol1, pol2)
 
         N = len(freqs)
 
         # Define delay axis if not provided:
         if taus_s is None:
             # A reasonable default delay range based on bandwidth and grid spacing:
-            df = (freqs[-1] - freqs[0]) / (N - 1)
+            df = abs(freqs[-1] - freqs[0]) / (N - 1)
             # time window ~ 1/df; sample a few windows
             t_max = 5 / df
             taus_s = np.linspace(-t_max, t_max, (2*N - 1)*100)
 
-        Pc = hom_dip_vs_delay(rho1, rho2, freqs, taus_s, R=R, T=T)
+        Pc = hom_dip_vs_delay(rho1, rho2, freqs, taus_s, R=R, T=T, pol_overlap=pol_overlap)
 
         # Useful metrics
         overlap0 = np.real(np.trace(rho1 @ rho2))
@@ -99,5 +110,6 @@ class HOMAnalyzer:
             overlap_at_zero_delay=overlap0,
             purity1=purity1,
             purity2=purity2,
+            polarization_overlap=pol_overlap,
         )
         return results
