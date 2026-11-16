@@ -1,12 +1,16 @@
+from collections.abc import Mapping
+
 import numpy as np
 import matplotlib.pyplot as plt
+from cycler import cycler
 from matplotlib import cm
 from matplotlib.ticker import MaxNLocator
+from matplotlib.transforms import offset_copy
 
 from photonpairlab.spdc.analysis.fitting import gaussian
 from photonpairlab.spdc.simulation.results import SPDCResults
 from photonpairlab.spdc.analysis.spectral_analyser import SpectralAnalyzer
-from photonpairlab.spdc.analysis.two_mode_hom_results import TwoModeHOMResults
+from photonpairlab.spdc.analysis.two_mode_hom_results import HOMResults
 
 # Modern light-mode chart palette: neutral chart chrome plus a colorblind-validated
 # categorical series order (fixed assignment order -- never cycle/reorder per-plot).
@@ -47,9 +51,45 @@ def _style_axes(ax, grid=True):
     ax.title.set_color(_PRIMARY_INK)
 
 
-def _style_legend(ax):
-    legend = ax.legend(frameon=False, labelcolor=_SECONDARY_INK)
-    return legend
+#: rcParams equivalent of ``_style_axes`` + palette, so plain ``plt`` figures match too.
+_RC_PARAMS = {
+    "figure.facecolor": _SURFACE,
+    "savefig.facecolor": _SURFACE,
+    "axes.facecolor": _SURFACE,
+    "axes.prop_cycle": cycler(color=_SERIES_COLORS),
+    "axes.axisbelow": True,
+    "axes.grid": True,
+    "grid.color": _GRID,
+    "grid.linewidth": 0.9,
+    "axes.spines.top": False,
+    "axes.spines.right": False,
+    "axes.edgecolor": _BASELINE,
+    "axes.labelcolor": _SECONDARY_INK,
+    "axes.titlecolor": _PRIMARY_INK,
+    "xtick.color": _MUTED_INK,
+    "ytick.color": _MUTED_INK,
+    "xtick.labelsize": 9,
+    "ytick.labelsize": 9,
+    "legend.frameon": False,
+    "legend.labelcolor": _SECONDARY_INK,
+    "lines.linewidth": 2,
+}
+
+# Gap between the bottom of the axes and a legend placed below it: room for tick labels and
+# the x label at the default sizes, independent of the figure size.
+_LEGEND_BELOW_OFFSET_PT = 40
+
+
+def _style_legend(ax, below=False, ncol=1):
+    """
+    Shared legend style. ``below=True`` puts the legend outside the axes, centered under the
+    x label, so long labels never cover the data.
+    """
+    kwargs = {"frameon": False, "labelcolor": _SECONDARY_INK}
+    if below:
+        anchor = offset_copy(ax.transAxes, fig=ax.figure, y=-_LEGEND_BELOW_OFFSET_PT, units="points")
+        kwargs.update(loc="upper center", bbox_to_anchor=(0.5, 0.0), bbox_transform=anchor, ncol=ncol)
+    return ax.legend(**kwargs)
 
 
 class SPDC_Plotter:
@@ -69,6 +109,27 @@ class SPDC_Plotter:
         look of the plots produced by this class without duplicating the style constants.
         """
         _style_axes(ax, grid=grid)
+
+    @staticmethod
+    def style_legend(ax, below=True, ncol=1):
+        """
+        Add a legend in the shared style. By default it sits outside the axes, under the
+        x label (``ncol`` > 1 spreads short labels over several columns). Use
+        ``below=False`` for matplotlib's automatic placement inside the axes.
+        """
+        return _style_legend(ax, below=below, ncol=ncol)
+
+    @staticmethod
+    def use_style():
+        """
+        Make every subsequent matplotlib figure use this module's chart style (surface,
+        gridlines, spines, ink colors and the series palette) via ``rcParams``.
+
+        Call it once at the top of a notebook so hand-made ``plt.subplots`` figures match the
+        ``SPDC_Plotter`` plots without styling each axes. Combine with ``style_legend`` for
+        legends outside the plot.
+        """
+        plt.rcParams.update(_RC_PARAMS)
 
     def plot_schmidt_coefficients(self, n_coefficients=20, fig=None, ax=None, font_size=12):
         """
@@ -270,19 +331,24 @@ class SPDC_Plotter:
         return fig, (field_ax, pattern_ax)
 
     @staticmethod
-    def plot_hom_dip(results, fig=None, ax=None, font_size=12):
+    def plot_hom_dip(results: "HOMResults | Mapping[str, HOMResults]", fig=None, ax=None, font_size: int = 12, show_visibility: bool = False):
         """
         Plot one or more Hong-Ou-Mandel coincidence-probability dips vs. relative delay.
 
         Parameters
         ----------
-        results : TwoModeHOMResults or Mapping[str, TwoModeHOMResults]
-            A single :class:`~photonpairlab.spdc.analysis.two_mode_hom_results.TwoModeHOMResults`
-            (from :meth:`~photonpairlab.spdc.analysis.hom_analyser.HOMAnalyzer.compute_two_mode_HOM`),
-            or a ``{label: TwoModeHOMResults}`` mapping to overlay multiple dips (e.g. comparing
+        results : HOMResults or Mapping[str, HOMResults]
+            A single :class:`~photonpairlab.spdc.analysis.two_mode_hom_results.HOMResults`
+            (from :meth:`~photonpairlab.spdc.analysis.hom_analyser.HOMAnalyzer.same_pair` or
+            :meth:`~photonpairlab.spdc.analysis.hom_analyser.HOMAnalyzer.independent`),
+            or a ``{label: HOMResults}`` mapping to overlay multiple dips (e.g. comparing
             sources).
         fig, ax : matplotlib Figure/Axes, optional
             Existing figure/axes to draw into. Both or neither must be given.
+        show_visibility : bool
+            Append the visibility and its factors (beam splitter × polarization × spectral) to
+            each legend label. Only the spectral factor changes the dip shape; the other two
+            scale its depth.
 
         Returns
         -------
@@ -290,10 +356,10 @@ class SPDC_Plotter:
 
         Notes
         -----
-        This is a ``staticmethod``: it plots whichever ``TwoModeHOMResults`` are passed in,
+        This is a ``staticmethod``: it plots whichever ``HOMResults`` are passed in,
         independent of any ``SPDC_Plotter`` instance's bound ``results``.
         """
-        if isinstance(results, TwoModeHOMResults):
+        if isinstance(results, HOMResults):
             results = {"HOM dip": results}
 
         if fig is None and ax is None:
@@ -304,12 +370,16 @@ class SPDC_Plotter:
             raise ValueError("Both fig and ax must be either None or provided together.")
 
         for (label, hom_result), color in zip(results.items(), _SERIES_COLORS):
+            if show_visibility:
+                b = hom_result.visibility_breakdown()
+                label = (f"{label}: V={b['total']:.3f} = {b['beam_splitter']:.2f} (BS) "
+                         f"× {b['polarization']:.2f} (pol) × {b['spectral']:.3f} (spec)")
             ax.plot(hom_result.tau_fs, hom_result.coincidence_probabilities, label=label, color=color, linewidth=2, zorder=3)
 
         ax.set_xlabel("relative delay (fs)", fontsize=font_size)
         ax.set_ylabel("coincidence probability", fontsize=font_size)
         _style_axes(ax)
-        if len(results) > 1:
-            _style_legend(ax)
+        if len(results) > 1 or show_visibility:
+            _style_legend(ax, below=True)
 
         return fig, ax

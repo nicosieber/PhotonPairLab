@@ -228,3 +228,25 @@ class SpectralAnalyzer:
             (signal_wavelengths, signal_intensities),
             (idler_wavelengths, idler_intensities),
         )
+    def marginal_centroids_nm(self) -> tuple[float, float]:
+        """
+        Intensity-weighted mean wavelengths (nm) of the full signal and idler marginal spectra,
+        i.e. what a spectrometer reports as the center of each photon's spectrum.
+
+        Unlike ``get_signal_idler_peaks(method="centroid")`` there is no threshold: the whole
+        marginal contributes, so side lobes shift the centroid. Differences of centroids give
+        the detuning between interfering photons, e.g. ``signal - idler`` for same-pair HOM or
+        ``signal_B - signal_A`` between two sources.
+
+        Returns:
+            (signal_centroid_nm, idler_centroid_nm)
+        """
+        jsi = np.abs(self.results.JSA) ** 2
+        signal_marginal = jsi.sum(axis=0)  # sum over idler (axis 0)
+        idler_marginal = jsi.sum(axis=1)  # sum over signal (axis 1)
+        wl_s = np.asarray(self.results.SignalWavelengths) * 1e9
+        wl_i = np.asarray(self.results.IdlerWavelengths) * 1e9
+        return (
+            float(signal_marginal @ wl_s / signal_marginal.sum()),
+            float(idler_marginal @ wl_i / idler_marginal.sum()),
+        )

@@ -1,10 +1,8 @@
-import numpy as np
-
 class BaseLaser:
     """
     Base class for lasers. Contains common attributes and methods.
     """
-    def __init__(self, wavelength_pump):
+    def __init__(self, wavelength_pump: float, power: float | None = None):
         """
         Initializes the LaserBase object.
 
@@ -15,3 +13,4 @@ class BaseLaser:
         self.c: float = 299792458  # Speed of light in meters per second (m/s)
         self.bandwidth_wavelength: float | None = None  # Bandwidth in wavelength (m)
         self.angular_bandwidth: float | None = None  # Bandwidth in angular frequency (rad/s)
+        self.power: float | None = power

@@ -68,3 +68,33 @@ def test_schmidt_and_spectra_plots_compose_into_one_figure(results):
     plotter.plot_schmidt_coefficients(fig=fig, ax=ax1)
     plotter.plot_signal_idler_spectra(fig=fig, ax=ax2)
     assert fig.axes == [ax1, ax2]
+
+
+def test_style_legend_below_places_legend_under_the_x_label():
+    import matplotlib.pyplot as plt
+
+    fig, ax = plt.subplots()
+    ax.plot([0, 1], [0, 1], label="a")
+    ax.plot([0, 1], [1, 0], label="b")
+    ax.set_xlabel("x")
+    legend = SPDC_Plotter.style_legend(ax, ncol=2)
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+
+    legend_box = legend.get_window_extent(renderer)
+    xlabel_box = ax.xaxis.label.get_window_extent(renderer)
+    assert legend_box.y1 <= xlabel_box.y0  # fully below the x label, not on the data
+    assert legend._ncols == 2
+    plt.close(fig)
+
+
+def test_use_style_applies_series_palette_to_plain_figures():
+    import matplotlib.pyplot as plt
+
+    with matplotlib.rc_context():
+        SPDC_Plotter.use_style()
+        fig, ax = plt.subplots()
+        line, = ax.plot([0, 1], [0, 1])
+        assert line.get_color() == SPDC_Plotter.SERIES_COLORS[0]
+        assert not ax.spines["top"].get_visible()
+        plt.close(fig)
